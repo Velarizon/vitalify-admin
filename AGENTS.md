@@ -109,7 +109,7 @@ git branch -d task/T06-middleware
 | T07 | `task/T07-login` | Login page + auth actions | T03 ✅, T04 ✅ | `pending` |
 | T08 | `task/T08-layout` | Sidebar + Topbar + Dashboard layout | T02 ✅, T04 ✅ | `pending` |
 | T09 | `task/T09-shift-blocker` | ShiftBlocker modal + shifts actions base | T03 ✅, T05 ✅ | `pending` |
-| T10 | `task/T10-shared-components` | Shared DataTable + MetricCard | T02 ✅ | `pending` |
+| T10 | `task/T10-shared-components` | Shared DataTable + MetricCard | T02 ✅ | `completed` |
 
 > ⚠️ **T09 requiere migración SQL manual.** Antes de que T09 funcione end-to-end, ejecutar en Supabase SQL Editor (`https://supabase.com/dashboard/project/ekpujtewohbquqjwtowr/sql/new`):
 > ```sql
@@ -257,3 +257,4 @@ Mismo proyecto Supabase que `kraken-web`. La migración en T05 agrega la tabla `
 | 2026-04-13 | Claude Sonnet 4.6 | Creó spec, plan, AGENTS.md, CLAUDE.md, GEMINI.md |
 | 2026-04-13 | Claude Sonnet 4.6 | Rediseñó coordinación a git-branch-based (sin editar AGENTS.md) |
 | 2026-04-14 | Claude Sonnet 4.6 | Completó Phase 1: T01–T05 mergeadas a main |
+| 2026-04-14 | Gemini CLI | Completó Task 10: Shared DataTable + MetricCard |
