@@ -1,33 +1,77 @@
 // lib/supabase/actions/workers.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { Database } from '@/types/supabase'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 export interface WorkerAccess {
   id: number
   role: string
   user_id: string | null
+  location_id: number | null
   location: { id: number; name: string } | null
+  email: string | null
+}
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !serviceRoleKey) {
+    return null
+  }
+
+  return createSupabaseClient<Database>(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 export async function getWorkers(companyId: number): Promise<WorkerAccess[]> {
-  const supabase = await createClient()
+  const supabase = await createServerClient()
   const { data, error } = await supabase
     .from('user_access')
-    .select('id, role, user_id, location:locations(id, name)')
+    .select('id, role, user_id, location_id, location:locations(id, name)')
     .eq('company_id', companyId)
     .in('role', ['admin', 'worker'])
   if (error) throw new Error(error.message)
-  return (data as unknown as WorkerAccess[]) ?? []
+
+  const rows = (data as unknown as Omit<WorkerAccess, 'email'>[]) ?? []
+  const adminClient = createAdminClient()
+
+  if (!adminClient) {
+    return rows.map((row) => ({ ...row, email: null }))
+  }
+
+  const emailEntries = await Promise.all(
+    rows.map(async (row) => {
+      if (!row.user_id) return [row.id, null] as const
+      const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(row.user_id)
+      if (userError) return [row.id, null] as const
+      return [row.id, userData.user.email ?? null] as const
+    })
+  )
+
+  const emailByWorkerId = new Map(emailEntries)
+  return rows.map((row) => ({ ...row, email: emailByWorkerId.get(row.id) ?? null }))
 }
 
-export async function inviteWorker(email: string, companyId: number, locationId: number, role: 'admin' | 'worker'): Promise<{ error: string | null }> {
-  const supabase = await createClient()
-  const { data: invited, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email)
+export async function inviteWorker(
+  email: string,
+  companyId: number,
+  locationId: number,
+  role: 'admin' | 'worker'
+): Promise<{ error: string | null }> {
+  const adminClient = createAdminClient()
+  if (!adminClient) {
+    return { error: 'SUPABASE_SERVICE_ROLE_KEY no está configurada en el servidor.' }
+  }
+
+  const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email)
   if (inviteError) return { error: inviteError.message }
 
-  const { error: accessError } = await supabase.from('user_access').insert({
+  const { error: accessError } = await adminClient.from('user_access').insert({
     user_id: invited.user.id,
     company_id: companyId,
     location_id: locationId,
@@ -35,6 +79,25 @@ export async function inviteWorker(email: string, companyId: number, locationId:
   })
   if (accessError) return { error: accessError.message }
 
+  revalidatePath('/workers')
+  return { error: null }
+}
+
+export async function updateWorker(
+  id: number,
+  data: { role?: string; location_id?: number }
+): Promise<{ error: string | null }> {
+  const supabase = await createServerClient()
+  const { error } = await supabase.from('user_access').update(data).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/workers')
+  return { error: null }
+}
+
+export async function deactivateWorker(id: number): Promise<{ error: string | null }> {
+  const supabase = await createServerClient()
+  const { error } = await supabase.from('user_access').delete().eq('id', id)
+  if (error) return { error: error.message }
   revalidatePath('/workers')
   return { error: null }
 }
