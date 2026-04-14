@@ -1,6 +1,6 @@
 // lib/shifts.ts
 export interface ShiftPayment {
-  amount: number
+  amount: number | null
   payment_method: string | null
 }
 
@@ -12,14 +12,18 @@ export interface ShiftTotals {
 }
 
 export function computeShiftTotals(payments: ShiftPayment[]): ShiftTotals {
-  const cash_amount = payments
-    .filter(p => p.payment_method === 'cash')
-    .reduce((sum, p) => sum + p.amount, 0)
-  const card_amount = payments
-    .filter(p => p.payment_method === 'card')
-    .reduce((sum, p) => sum + p.amount, 0)
-  const other_amount = payments
-    .filter(p => p.payment_method !== 'cash' && p.payment_method !== 'card')
-    .reduce((sum, p) => sum + p.amount, 0)
-  return { cash_amount, card_amount, other_amount, total_amount: cash_amount + card_amount + other_amount }
+  const totals = payments.reduce(
+    (acc, p) => {
+      const amount = p.amount ?? 0
+      if (p.payment_method === 'cash') acc.cash_amount += amount
+      else if (p.payment_method === 'card') acc.card_amount += amount
+      else acc.other_amount += amount
+      return acc
+    },
+    { cash_amount: 0, card_amount: 0, other_amount: 0 }
+  )
+  return {
+    ...totals,
+    total_amount: totals.cash_amount + totals.card_amount + totals.other_amount,
+  }
 }
