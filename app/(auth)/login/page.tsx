@@ -50,16 +50,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40">
-      <Card className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-sm border-border bg-card">
         <CardHeader className="text-center">
-          <div className="text-3xl mb-2">⚡</div>
-          <CardTitle className="text-xl">Vitalify Admin</CardTitle>
+          <div className="text-3xl mb-2 text-primary">⚡</div>
+          <CardTitle className="text-xl font-bold tracking-tight">Vitalify Admin</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -67,20 +67,22 @@ export default function LoginPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="admin@gimnasio.com"
                 required
+                className="h-9 text-sm bg-background border-border"
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" title="Contraseña" className="text-xs text-muted-foreground">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
+                className="h-9 text-sm bg-background border-border"
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
+            {error && <p className="text-xs text-destructive font-medium">{error}</p>}
+            <Button type="submit" className="w-full h-9 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" disabled={loading}>
               {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </Button>
           </form>
