@@ -1,4 +1,3 @@
-// lib/supabase/actions/payments.ts
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
