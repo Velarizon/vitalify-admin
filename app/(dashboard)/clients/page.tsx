@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { getClients } from '@/lib/supabase/actions/clients'
-import { getPlans } from '@/lib/supabase/actions/plans'
+import { getActivePlans } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
 import { Plus, MoreHorizontal, Pencil } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
-import { CreateClientSheet } from '@/components/clients/create-client-sheet'
+import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import {
   DropdownMenu,
@@ -37,7 +37,7 @@ function statusBadge(client: Client) {
 export default function ClientsPage() {
   const { userData } = useAuthStore()
   const [clients, setClients] = useState<Client[]>([])
-  const [plans, setPlans] = useState<{ id: number; name: string; duration: string }[]>([])
+  const [plans, setPlans] = useState<{ id: number; name: string; price: number | null; duration: string | null }[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -46,13 +46,14 @@ export default function ClientsPage() {
     if (!userData) return
     const [cData, pData] = await Promise.all([
       getClients(userData.company.id),
-      getPlans(userData.company.id)
+      getActivePlans(userData.company.id)
     ])
     setClients(cData)
     setPlans(pData.map(p => ({
       id: p.id,
       name: p.name ?? 'Sin nombre',
-      duration: String(p.duration ?? '')
+      price: p.price ?? null,
+      duration: p.duration ?? null,
     })))
     setLoading(false)
   }
@@ -126,7 +127,7 @@ export default function ClientsPage() {
       ) : (
         <DataTable columns={columns} data={clients} searchPlaceholder="Buscar cliente..." />
       )}
-      <CreateClientSheet
+      <CreateClientWizard
         open={showCreate}
         onClose={() => { setShowCreate(false); load() }}
         plans={plans}
