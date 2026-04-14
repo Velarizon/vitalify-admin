@@ -5,6 +5,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 const ADMIN_ONLY_PATHS = ['/plans', '/locations', '/reports', '/workers', '/terminal']
 
 export async function middleware(request: NextRequest) {
+  // Server actions are POST requests with the next-action header — skip redirect logic
+  if (request.headers.has('next-action')) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
