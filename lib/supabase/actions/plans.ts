@@ -31,3 +31,24 @@ export async function deletePlan(id: number) {
   if (error) throw new Error(error.message)
   revalidatePath('/plans')
 }
+
+export async function togglePlanActive(planId: number, isActive: boolean) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('plans')
+    .update({ is_active: isActive })
+    .eq('id', planId)
+  if (error) throw new Error(error.message)
+  revalidatePath('/plans')
+}
+
+export async function getActivePlans(companyId: number) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('plans')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
