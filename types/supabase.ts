@@ -193,6 +193,8 @@ export type Database = {
           payment_date: string | null
           payment_method: string | null
           subscription_id: number | null
+          shift_id: number | null
+          registered_by: string | null
         }
         Insert: {
           amount?: number | null
@@ -201,6 +203,8 @@ export type Database = {
           payment_date?: string | null
           payment_method?: string | null
           subscription_id?: number | null
+          shift_id?: number | null
+          registered_by?: string | null
         }
         Update: {
           amount?: number | null
@@ -209,6 +213,8 @@ export type Database = {
           payment_date?: string | null
           payment_method?: string | null
           subscription_id?: number | null
+          shift_id?: number | null
+          registered_by?: string | null
         }
         Relationships: [
           {
@@ -223,6 +229,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -358,7 +371,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }, shifts: {
+        Row: {
+          cash_amount: number
+          card_amount: number
+          closed_at: string | null
+          id: number
+          location_id: number
+          notes: string | null
+          opened_at: string
+          opened_by: string
+          other_amount: number
+          total_amount: number
+        }
+        Insert: {
+          cash_amount?: number
+          card_amount?: number
+          closed_at?: string | null
+          id?: never
+          location_id: number
+          notes?: string | null
+          opened_at?: string
+          opened_by: string
+          other_amount?: number
+          total_amount?: number
+        }
+        Update: {
+          cash_amount?: number
+          card_amount?: number
+          closed_at?: string | null
+          id?: never
+          location_id?: number
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string
+          other_amount?: number
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
+
       user_access: {
         Row: {
           company_id: number | null
