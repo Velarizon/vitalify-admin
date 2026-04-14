@@ -36,7 +36,7 @@ export default function DashboardPage() {
       <h1 className="text-lg font-semibold">Dashboard</h1>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <MetricCard title="Clientes activos" value={data.totalClients} />
-        <MetricCard title="Ingresos del mes" value={fmt(data.monthlyRevenue)} className="text-emerald-600" />
+        <MetricCard title="Ingresos del mes" value={fmt(data.monthlyRevenue)} className="text-primary" />
         <MetricCard title="Cumpleaños hoy" value={data.todayBirthdays.length} />
       </div>
       {data.todayBirthdays.length > 0 && (
