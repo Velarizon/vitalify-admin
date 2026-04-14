@@ -69,7 +69,7 @@ export default function ShiftDetailPage() {
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold flex-1">Turno #{shift.id}</h1>
-        {isOpen ? <Badge className="bg-emerald-600">Activo</Badge> : <Badge variant="outline">Cerrado</Badge>}
+        {isOpen ? <Badge className="bg-primary">Activo</Badge> : <Badge variant="outline">Cerrado</Badge>}
       </div>
 
       <div className="text-xs text-muted-foreground space-y-0.5">

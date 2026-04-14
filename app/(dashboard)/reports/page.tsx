@@ -20,8 +20,8 @@ export default function ReportsPage() {
             <Card key={r.href} className={r.enabled ? '' : 'opacity-50'}>
               <CardContent className="p-4">
                 {r.enabled ? (
-                  <Link href={r.href} className="block space-y-1 hover:text-emerald-600">
-                    <Icon size={18} className="text-emerald-600" />
+                  <Link href={r.href} className="block space-y-1 hover:text-primary">
+                    <Icon size={18} className="text-primary" />
                     <p className="text-sm font-medium">{r.title}</p>
                     <p className="text-xs text-muted-foreground">{r.description}</p>
                   </Link>
@@ -30,7 +30,7 @@ export default function ReportsPage() {
                     <Icon size={18} className="text-muted-foreground" />
                     <p className="text-sm font-medium">{r.title}</p>
                     <p className="text-xs text-muted-foreground">{r.description}</p>
-                    <span className="text-xs text-yellow-600">Próximamente</span>
+                    <span className="text-xs text-[#FF9F0A]">Próximamente</span>
                   </div>
                 )}
               </CardContent>

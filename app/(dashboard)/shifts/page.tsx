@@ -21,7 +21,7 @@ const columns: ColumnDef<Shift>[] = [
   { accessorKey: 'id', header: 'ID', size: 50 },
   { accessorKey: 'opened_at', header: 'Apertura', cell: ({ row }) => row.original.opened_at?.replace('T', ' ').slice(0, 16) },
   { accessorKey: 'closed_at', header: 'Cierre', cell: ({ row }) =>
-    row.original.closed_at ? row.original.closed_at.replace('T', ' ').slice(0, 16) : <Badge className="bg-emerald-600">Activo</Badge> },
+    row.original.closed_at ? row.original.closed_at.replace('T', ' ').slice(0, 16) : <Badge className="bg-primary">Activo</Badge> },
   { accessorKey: 'cash_amount', header: 'Efectivo', cell: ({ row }) => fmt(row.original.cash_amount ?? 0) },
   { accessorKey: 'card_amount', header: 'Tarjeta', cell: ({ row }) => fmt(row.original.card_amount ?? 0) },
   { accessorKey: 'total_amount', header: 'Total', cell: ({ row }) => fmt(row.original.total_amount ?? 0) },
@@ -72,7 +72,7 @@ export default function ShiftsPage() {
             {opening ? 'Abriendo...' : 'Abrir turno'}
           </Button>
         )}
-        {hasActive && <Badge className="bg-emerald-600">Turno activo</Badge>}
+        {hasActive && <Badge className="bg-primary">Turno activo</Badge>}
       </div>
       <DataTable columns={columns} data={shifts} />
     </div>

@@ -30,8 +30,8 @@ export function ShiftBlocker({ locationId, onShiftOpened }: ShiftBlockerProps) {
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center">
       <div className="w-full max-w-sm mx-4 p-8 rounded-xl border bg-card shadow-xl text-center space-y-4">
         <div className="flex justify-center">
-          <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-            <Timer className="text-emerald-600" size={28} />
+          <div className="w-14 h-14 rounded-full bg-secondary dark:bg-card flex items-center justify-center">
+            <Timer className="text-primary" size={28} />
           </div>
         </div>
         <h2 className="text-xl font-semibold">Iniciar turno</h2>
