@@ -11,6 +11,7 @@ import { getClients } from '@/lib/supabase/actions/clients'
 import { getPlans } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
 import { Plus } from 'lucide-react'
+import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientSheet } from '@/components/clients/create-client-sheet'
 
 type Client = Awaited<ReturnType<typeof getClients>>[number]
@@ -88,7 +89,7 @@ export default function ClientsPage() {
         </Button>
       </div>
       {loading ? (
-        <p className="text-xs text-muted-foreground">Cargando...</p>
+        <TableSkeleton />
       ) : (
         <DataTable columns={columns} data={clients} searchPlaceholder="Buscar cliente..." />
       )}

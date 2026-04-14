@@ -9,6 +9,8 @@ import { MetricCard } from '@/components/shared/metric-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { getShiftDetail, closeShift, getActiveShift } from '@/lib/supabase/actions/shifts'
 import { usePreferencesStore } from '@/stores/preferences'
 import { toast } from 'sonner'
@@ -60,7 +62,23 @@ export default function ShiftDetailPage() {
     router.push('/shifts')
   }
 
-  if (!detail) return <p className="text-xs text-muted-foreground p-4">Cargando...</p>
+  if (!detail) return (
+    <div className="space-y-4 max-w-3xl animate-pulse">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </div>
+      <div className="space-y-1">
+        <Skeleton className="h-3 w-48" />
+        <Skeleton className="h-3 w-40" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
+      </div>
+      <Separator />
+      <TableSkeleton rows={3} columns={3} />
+    </div>
+  )
 
   const { shift, payments } = detail
   const isOpen = !shift.closed_at
