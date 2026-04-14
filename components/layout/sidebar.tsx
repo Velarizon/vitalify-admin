@@ -34,7 +34,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const navItems = allNavItems.filter(item => !item.adminOnly || role === 'admin')
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delay={0}>
       <aside
         className={cn(
           'fixed left-0 top-0 h-full bg-emerald-900 text-emerald-100 flex flex-col transition-all duration-200 z-40',
@@ -56,7 +56,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
             return (
               <Tooltip key={item.href}>
-                <TooltipTrigger asChild>
+                <TooltipTrigger>
                   <Link
                     href={item.href}
                     className={cn(
