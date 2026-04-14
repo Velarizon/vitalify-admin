@@ -7,77 +7,94 @@ import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Home, Users, CreditCard, ClipboardList, Timer,
-  MapPin, BarChart3, UserCog, Fingerprint, ChevronRight, ChevronLeft,
+  MapPin, BarChart3, UserCog, Fingerprint, Menu, X,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
+import { usePreferencesStore } from '@/stores/preferences'
 
-const allNavItems = [
-  { label: 'Dashboard',     href: '/',          icon: Home,          adminOnly: false },
-  { label: 'Clientes',      href: '/clients',   icon: Users,         adminOnly: false },
-  { label: 'Pagos',         href: '/payments',  icon: CreditCard,    adminOnly: false },
-  { label: 'Turnos',        href: '/shifts',    icon: Timer,         adminOnly: false },
-  { label: 'Planes',        href: '/plans',     icon: ClipboardList, adminOnly: true  },
-  { label: 'Ubicaciones',   href: '/locations', icon: MapPin,        adminOnly: true  },
-  { label: 'Reportes',      href: '/reports',   icon: BarChart3,     adminOnly: true  },
-  { label: 'Trabajadores',  href: '/workers',   icon: UserCog,       adminOnly: true  },
-  { label: 'Terminal',      href: '/terminal',  icon: Fingerprint,   adminOnly: true  },
+const generalItems = [
+  { label: 'Dashboard',  href: '/',         icon: Home },
+  { label: 'Clientes',   href: '/clients',  icon: Users },
+  { label: 'Pagos',      href: '/payments', icon: CreditCard },
+  { label: 'Turnos',     href: '/shifts',   icon: Timer },
 ]
 
-interface SidebarProps {
-  isOpen: boolean
-  onToggle: () => void
-}
+const adminItems = [
+  { label: 'Planes',       href: '/plans',     icon: ClipboardList },
+  { label: 'Ubicaciones',  href: '/locations', icon: MapPin },
+  { label: 'Reportes',     href: '/reports',   icon: BarChart3 },
+  { label: 'Trabajadores', href: '/workers',   icon: UserCog },
+  { label: 'Terminal',     href: '/terminal',  icon: Fingerprint },
+]
 
-export function Sidebar({ isOpen, onToggle }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname()
   const { role } = useAuthStore()
-  const navItems = allNavItems.filter(item => !item.adminOnly || role === 'admin')
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = usePreferencesStore()
+  const navItems = role === 'admin' ? [...generalItems, ...adminItems] : generalItems
+  const showAdmin = role === 'admin'
+
+  const renderItem = (item: (typeof generalItems)[number]) => {
+    const Icon = item.icon
+    const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+    return (
+      <Tooltip key={item.href}>
+        <TooltipTrigger asChild>
+          <Link
+            href={item.href}
+            onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false) }}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+              isActive
+                ? 'bg-secondary text-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            )}
+          >
+            <Icon size={18} className="flex-shrink-0" />
+            {sidebarOpen && <span>{item.label}</span>}
+          </Link>
+        </TooltipTrigger>
+        {!sidebarOpen && (
+          <TooltipContent side="right"><p>{item.label}</p></TooltipContent>
+        )}
+      </Tooltip>
+    )
+  }
 
   return (
     <TooltipProvider delay={0}>
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-full bg-emerald-900 text-emerald-100 flex flex-col transition-all duration-200 z-40',
-          isOpen ? 'w-56' : 'w-12'
+          'fixed left-0 top-0 h-full bg-card border-r border-border flex flex-col z-40 transition-all duration-200',
+          sidebarOpen ? 'w-[180px]' : 'w-12',
+          // Mobile: hidden when closed
+          !sidebarOpen && 'max-md:-translate-x-full'
         )}
       >
-        {/* Logo + toggle */}
-        <div className={cn('flex items-center h-12 px-2 border-b border-emerald-800', isOpen ? 'justify-between' : 'justify-center')}>
-          {isOpen && <span className="font-bold text-emerald-300 text-sm ml-1">⚡ Vitalify</span>}
-          <button onClick={onToggle} className="p-1 rounded hover:bg-emerald-800 transition-colors">
-            {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+        {/* Header */}
+        <div className={cn('flex items-center h-12 px-2 border-b border-border', sidebarOpen ? 'justify-between' : 'justify-center')}>
+          {sidebarOpen && <span className="font-bold text-primary text-sm ml-1">⚡ Vitalify</span>}
+          <button onClick={toggleSidebar} className="p-1.5 rounded-md hover:bg-secondary transition-colors">
+            {sidebarOpen ? <X size={16} className="text-muted-foreground" /> : <Menu size={16} className="text-muted-foreground" />}
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-2 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => {
-            const Icon = item.icon
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-            return (
-              <Tooltip key={item.href}>
-                <TooltipTrigger>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-3 mx-1 px-2 py-1.5 rounded text-sm transition-colors',
-                      isActive
-                        ? 'bg-emerald-700 text-white'
-                        : 'text-emerald-300 hover:bg-emerald-800 hover:text-white'
-                    )}
-                  >
-                    <Icon size={16} className="flex-shrink-0" />
-                    {isOpen && <span>{item.label}</span>}
-                  </Link>
-                </TooltipTrigger>
-                {!isOpen && (
-                  <TooltipContent side="right">
-                    <p>{item.label}</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            )
-          })}
+        <nav className="flex-1 py-3 px-1.5 space-y-0.5 overflow-y-auto">
+          {generalItems.map(renderItem)}
+          {showAdmin && (
+            <>
+              <div className="my-2 mx-2 border-t border-border" />
+              {adminItems.map(renderItem)}
+            </>
+          )}
         </nav>
       </aside>
     </TooltipProvider>
