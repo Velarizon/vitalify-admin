@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button'
 import { getClients } from '@/lib/supabase/actions/clients'
 import { getActivePlans } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, MoreHorizontal, Pencil } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, RefreshCw } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
+import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +42,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [renewingClient, setRenewingClient] = useState<Client | null>(null)
 
   const load = async () => {
     if (!userData) return
@@ -108,6 +110,12 @@ export default function ClientsPage() {
             >
               <Pencil className="h-3 w-3" /> Editar
             </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => setRenewingClient(row.original)}
+              className="text-xs gap-2"
+            >
+              <RefreshCw className="h-3 w-3" /> Renovar
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -136,6 +144,12 @@ export default function ClientsPage() {
         client={editingClient}
         open={!!editingClient}
         onClose={() => setEditingClient(null)}
+        onSuccess={load}
+      />
+      <RenewMembershipDialog
+        client={renewingClient}
+        open={!!renewingClient}
+        onClose={() => setRenewingClient(null)}
         onSuccess={load}
       />
     </div>
