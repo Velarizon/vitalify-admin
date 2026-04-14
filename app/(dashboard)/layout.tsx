@@ -8,14 +8,12 @@ import { ShiftBlocker } from '@/components/layout/shift-blocker'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getActiveShift } from '@/lib/supabase/actions/shifts'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeShift, setActiveShift] = useState<{ id: number; opened_at: string } | null>(null)
   const [shiftChecked, setShiftChecked] = useState(false)
   const { role } = useAuthStore()
-  const { selectedLocation } = usePreferencesStore()
+  const { selectedLocation, sidebarOpen } = usePreferencesStore()
 
   useEffect(() => {
     if (!selectedLocation) return
@@ -34,18 +32,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(p => !p)} />
+      <Sidebar />
       <Topbar
-        isOpen={sidebarOpen}
         hasActiveShift={!!activeShift}
         activeShiftOpenedAt={activeShift?.opened_at}
         onOpenDoor={handleOpenDoor}
       />
       <main
-        className="pt-12 min-h-screen transition-all duration-200"
-        style={{ marginLeft: sidebarOpen ? 224 : 48 }}
+        className="pt-12 min-h-screen transition-all duration-200 max-md:ml-0"
+        style={{ marginLeft: sidebarOpen ? 180 : 48 }}
       >
-        <div className="p-4">{children}</div>
+        <div className="p-4 md:p-6">{children}</div>
       </main>
       {showShiftBlocker && (
         <ShiftBlocker
