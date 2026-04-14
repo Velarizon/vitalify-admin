@@ -17,8 +17,8 @@ type Client = Awaited<ReturnType<typeof getClients>>[number]
 
 function statusBadge(client: Client) {
   const sub = client.subscriptions?.[0]
-  if (!sub || !(sub as any).is_sync) return <Badge variant="outline" className="text-yellow-600">Baja</Badge>
-  const expired = new Date() > new Date((sub as any).end_date)
+  if (!sub) return <Badge variant="outline" className="text-yellow-600">Baja</Badge>
+  const expired = new Date() > new Date(sub.end_date ?? 0)
   return expired
     ? <Badge variant="destructive">Vencido</Badge>
     : <Badge className="bg-emerald-600">Vigente</Badge>
@@ -69,7 +69,11 @@ export default function ClientsPage() {
       getPlans(userData.company.id)
     ])
     setClients(cData)
-    setPlans(pData)
+    setPlans(pData.map(p => ({
+      id: p.id,
+      name: p.name ?? 'Sin nombre',
+      duration: String(p.duration ?? '')
+    })))
     setLoading(false)
   }
 

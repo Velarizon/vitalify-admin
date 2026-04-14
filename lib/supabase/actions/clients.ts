@@ -8,7 +8,7 @@ export async function getClients(companyId: number) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('clients')
-    .select(`*, subscriptions(id, end_date, is_sync, plans(name))`)
+    .select(`*, subscriptions(id, end_date, plans(name))`)
     .eq('company_id', companyId)
     .order('id', { ascending: false })
   if (error) throw new Error(error.message)
