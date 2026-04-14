@@ -1,8 +1,7 @@
 // components/layout/topbar.tsx
 'use client'
 
-import { useTheme } from 'next-themes'
-import { Sun, Moon, LogOut, DoorOpen, Clock } from 'lucide-react'
+import { LogOut, DoorOpen, Clock, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth'
@@ -11,7 +10,6 @@ import { logout } from '@/lib/supabase/actions/auth'
 import { useState, useEffect } from 'react'
 
 interface TopbarProps {
-  isOpen: boolean
   activeShiftOpenedAt?: string | null
   hasActiveShift: boolean
   onOpenDoor: () => void
@@ -34,10 +32,9 @@ function useShiftDuration(openedAt: string | null) {
   return label
 }
 
-export function Topbar({ isOpen, activeShiftOpenedAt, hasActiveShift, onOpenDoor }: TopbarProps) {
-  const { theme, setTheme } = useTheme()
+export function Topbar({ activeShiftOpenedAt, hasActiveShift, onOpenDoor }: TopbarProps) {
   const { userData, role, clearUserData } = useAuthStore()
-  const { selectedLocation } = usePreferencesStore()
+  const { selectedLocation, sidebarOpen, toggleSidebar } = usePreferencesStore()
   const duration = useShiftDuration(activeShiftOpenedAt ?? null)
   const [shiftWarning, setShiftWarning] = useState(false)
 
@@ -50,20 +47,25 @@ export function Topbar({ isOpen, activeShiftOpenedAt, hasActiveShift, onOpenDoor
     await logout()
   }
 
-  const sidebarWidth = isOpen ? 224 : 48
+  const sidebarWidth = sidebarOpen ? 180 : 48
 
   return (
     <>
       <header
-        className="fixed top-0 right-0 h-12 bg-background border-b flex items-center px-4 gap-3 z-30 transition-all duration-200"
-        style={{ left: sidebarWidth }}
+        className="fixed top-0 right-0 h-12 bg-card border-b border-border flex items-center px-4 gap-3 z-30 transition-all duration-200"
+        style={{ left: typeof window !== 'undefined' && window.innerWidth < 768 ? 0 : sidebarWidth }}
       >
-        <div className="flex-1 text-sm font-medium text-muted-foreground">
+        {/* Mobile hamburger */}
+        <button onClick={toggleSidebar} className="p-1.5 rounded-md hover:bg-secondary transition-colors md:hidden">
+          <Menu size={18} className="text-muted-foreground" />
+        </button>
+
+        <div className="flex-1 text-sm font-medium text-muted-foreground truncate">
           {selectedLocation?.location.name} — {userData?.company.name}
         </div>
 
         {hasActiveShift && (
-          <Badge variant="outline" className="text-emerald-600 border-emerald-600 gap-1">
+          <Badge variant="outline" className="text-primary border-primary gap-1">
             <Clock size={11} />
             Turno · {duration}
           </Badge>
@@ -73,22 +75,15 @@ export function Topbar({ isOpen, activeShiftOpenedAt, hasActiveShift, onOpenDoor
           <DoorOpen size={13} /> Abrir puerta
         </Button>
 
-        <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-1.5 rounded hover:bg-muted transition-colors"
-        >
-          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
-
-        <button onClick={handleLogout} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground">
+        <button onClick={handleLogout} className="p-1.5 rounded-md hover:bg-secondary transition-colors text-muted-foreground">
           <LogOut size={15} />
         </button>
       </header>
 
       {/* Shift warning dialog */}
       {shiftWarning && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="bg-background rounded-xl p-6 max-w-sm w-full space-y-3 shadow-xl">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+          <div className="bg-card border border-border rounded-xl p-6 max-w-sm w-full space-y-3 shadow-xl">
             <h3 className="font-semibold">Turno activo</h3>
             <p className="text-sm text-muted-foreground">
               Debes cerrar tu turno antes de cerrar sesión. Ve a Turnos para hacer el corte de caja.
