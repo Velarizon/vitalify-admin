@@ -55,7 +55,7 @@ export default function ClientsPage() {
       id: p.id,
       name: p.name ?? 'Sin nombre',
       price: p.price ?? null,
-      duration: p.duration ?? null,
+      duration: p.duration ? String(p.duration) : null,
     })))
     setLoading(false)
   }

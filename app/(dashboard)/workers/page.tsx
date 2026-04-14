@@ -259,7 +259,7 @@ export default function WorkersPage() {
                 <Label>Ubicación</Label>
                 <Select
                   value={inviteForm.location_id}
-                  onValueChange={(value) => setInviteForm((current) => ({ ...current, location_id: value }))}
+                  onValueChange={(value) => setInviteForm((current) => ({ ...current, location_id: value ?? '' }))}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona ubicación" />
@@ -317,7 +317,7 @@ export default function WorkersPage() {
                 <Label>Ubicación</Label>
                 <Select
                   value={editForm.location_id}
-                  onValueChange={(value) => setEditForm((current) => ({ ...current, location_id: value }))}
+                  onValueChange={(value) => setEditForm((current) => ({ ...current, location_id: value ?? '' }))}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona ubicación" />

@@ -12,10 +12,10 @@ import { toast } from 'sonner'
 interface Props {
   client: {
     id: number
-    name: string
-    last_name: string
-    email: string
-    phone_number: string
+    name: string | null
+    last_name: string | null
+    email: string | null
+    phone_number: string | null
     date_of_birth: string | null
     gender: string | null
   } | null
@@ -121,7 +121,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
             <Label htmlFor="gender" className="text-xs">Género</Label>
             <Select 
               value={formData.gender} 
-              onValueChange={v => setFormData(p => ({ ...p, gender: v }))}
+              onValueChange={v => setFormData(p => ({ ...p, gender: v ?? 'M' }))}
             >
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />

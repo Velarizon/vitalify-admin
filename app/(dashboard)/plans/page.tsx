@@ -201,7 +201,7 @@ export default function PlansPage() {
                 <Label>Duración</Label>
                 <Select
                   value={form.duration}
-                  onValueChange={(value) => setForm((current) => ({ ...current, duration: value }))}
+                  onValueChange={(value) => setForm((current) => ({ ...current, duration: value ?? '' }))}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -237,7 +237,7 @@ export default function PlansPage() {
                 onValueChange={(value) =>
                   setForm((current) => ({
                     ...current,
-                    access_level: value,
+                    access_level: value ?? '',
                     access_start_time: value === 'limited' ? current.access_start_time : '',
                     access_end_time: value === 'limited' ? current.access_end_time : '',
                   }))

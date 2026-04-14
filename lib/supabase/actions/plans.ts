@@ -36,7 +36,7 @@ export async function togglePlanActive(planId: number, isActive: boolean) {
   const supabase = await createClient()
   const { error } = await supabase
     .from('plans')
-    .update({ is_active: isActive })
+    .update({ is_active: isActive } as any)
     .eq('id', planId)
   if (error) throw new Error(error.message)
   revalidatePath('/plans')
@@ -48,7 +48,7 @@ export async function getActivePlans(companyId: number) {
     .from('plans')
     .select('*')
     .eq('company_id', companyId)
-    .eq('is_active', true)
+    .eq('is_active' as any, true)
   if (error) throw new Error(error.message)
   return data ?? []
 }

@@ -105,10 +105,10 @@ git branch -d task/T06-middleware
 
 | ID | Rama | Título | Dependencias | Status |
 |---|---|---|---|---|
-| T06 | `task/T06-middleware` | Middleware auth + role routing | T03 ✅, T04 ✅ | `pending` |
-| T07 | `task/T07-login` | Login page + auth actions | T03 ✅, T04 ✅ | `pending` |
-| T08 | `task/T08-layout` | Sidebar + Topbar + Dashboard layout | T02 ✅, T04 ✅ | `pending` |
-| T09 | `task/T09-shift-blocker` | ShiftBlocker modal + shifts actions base | T03 ✅, T05 ✅ | `pending` |
+| T06 | `task/T06-middleware` | Middleware auth + role routing | T03 ✅, T04 ✅ | `completed` |
+| T07 | `task/T07-login` | Login page + auth actions | T03 ✅, T04 ✅ | `completed` |
+| T08 | `task/T08-layout` | Sidebar + Topbar + Dashboard layout | T02 ✅, T04 ✅ | `completed` |
+| T09 | `task/T09-shift-blocker` | ShiftBlocker modal + shifts actions base | T03 ✅, T05 ✅ | `completed` |
 | T10 | `task/T10-shared-components` | Shared DataTable + MetricCard | T02 ✅ | `completed` |
 
 > ⚠️ **T09 requiere migración SQL manual.** Antes de que T09 funcione end-to-end, ejecutar en Supabase SQL Editor (`https://supabase.com/dashboard/project/ekpujtewohbquqjwtowr/sql/new`):
@@ -137,18 +137,18 @@ git branch -d task/T06-middleware
 
 | ID | Rama | Título | Dependencias | Status |
 |---|---|---|---|---|
-| T11 | `task/T11-dashboard-page` | Dashboard page | T09, T10 | `pending` |
-| T12 | `task/T12-clients-page` | Clients page + CreateClientSheet | T09, T10 | `pending` |
-| T13 | `task/T13-payments-page` | Payments page + actions | T09, T10 | `pending` |
-| T14 | `task/T14-plans-locations-reports` | Plans, Locations, Reports pages | T09, T10 | `pending` |
+| T11 | `task/T11-dashboard-page` | Dashboard page | T09, T10 | `completed` |
+| T12 | `task/T12-clients-page` | Clients page + CreateClientSheet | T09, T10 | `completed` |
+| T13 | `task/T13-payments-page` | Payments page + actions | T09, T10 | `completed` |
+| T14 | `task/T14-plans-locations-reports` | Plans, Locations, Reports pages | T09, T10 | `completed` |
 
 ### Phase 4: New features
 
 | ID | Rama | Título | Dependencias | Status |
 |---|---|---|---|---|
-| T15 | `task/T15-shifts-pages` | Shifts pages (lista + detalle + cierre) | T09, T10 | `pending` |
-| T16 | `task/T16-workers-page` | Workers page + actions | T09, T10 | `pending` |
-| T17 | `task/T17-terminal` | Terminal adapter + API route + page | T02 ✅, T03 ✅ | `pending` |
+| T15 | `task/T15-shifts-pages` | Shifts pages (lista + detalle + cierre) | T09, T10 | `completed` |
+| T16 | `task/T16-workers-page` | Workers page + actions | T09, T10 | `completed` |
+| T17 | `task/T17-terminal` | Terminal adapter + API route + page | T02 ✅, T03 ✅ | `completed` |
 
 ---
 
@@ -258,3 +258,40 @@ Mismo proyecto Supabase que `kraken-web`. La migración en T05 agrega la tabla `
 | 2026-04-13 | Claude Sonnet 4.6 | Rediseñó coordinación a git-branch-based (sin editar AGENTS.md) |
 | 2026-04-14 | Claude Sonnet 4.6 | Completó Phase 1: T01–T05 mergeadas a main |
 | 2026-04-14 | Gemini CLI | Completó Task 10: Shared DataTable + MetricCard |
+| 2026-04-14 | Gemini CLI | Completó Task 09: ShiftBlocker modal + shifts actions base |
+| 2026-04-14 | Claude Sonnet | Completó Tareas 11, 13 y 15 |
+| 2026-04-14 | Gemini CLI | Completó Tareas 12, 14, 16 y 17 |
+
+### Phase 5: UX/UI Neon Dark (v2)
+
+| ID | Rama | Título | Dependencias | Status | Agent |
+|---|---|---|---|---|---|
+| T18 | `task/T18-neon-dark-theme` | Neon Dark Theme (globals.css + layout.tsx) | — | `completed` | Gemini CLI |
+| T19 | `task/T19-terminal-rewrite` | Terminal Class Rewrite | — | `pending` | Codex |
+| T20 | `task/T20-plans-migration` | Plans Migration + Action | — | `pending` | Codex |
+| T21 | `task/T21-datatable-pagination` | DataTable Pagination | — | `pending` | Claude |
+| T22 | `task/T22-sidebar-store` | Sidebar Preferences Store | — | `completed` | Claude |
+| T23 | `task/T23-sidebar-redesign` | Sidebar Redesign | T18, T22 | `completed` | Gemini CLI |
+| T24 | `task/T24-topbar-redesign` | Topbar Redesign | T18 | `completed` | Gemini CLI |
+| T25 | `task/T25-dashboard-layout` | Dashboard Layout Update | T18 | `completed` | Gemini CLI |
+| T26 | `task/T26-plans-crud` | Plans CRUD Page | T20 | `pending` | Codex |
+| T27 | `task/T27-locations-crud` | Locations CRUD Page | — | `pending` | Codex |
+| T28 | `task/T28-workers-crud` | Workers CRUD Page | — | `pending` | Codex |
+| T29 | `task/T29-terminal-config` | Terminal Config Page | T19 | `pending` | Codex |
+| T30 | `task/T30-remove-emerald` | Remove Emerald Hardcodes | T18 | `completed` | Gemini CLI |
+| T31 | `task/T31-install-deps` | Install Dependencies (wizard) | — | `pending` | Claude |
+| T32 | `task/T32-wizard-stepper` | Wizard Stepper | T31 | `pending` | Claude |
+| T33 | `task/T33-step-personal` | Step 1 Personal | T32 | `pending` | Claude |
+| T34 | `task/T34-step-biometrics` | Step 2 Biometrics | T32 | `pending` | Claude |
+| T35 | `task/T35-step-payment` | Step 3 Plan/Payment | T32 | `pending` | Claude |
+| T36 | `task/T36-wizard-submission` | Wizard + Submission | T33, T34, T35 | `pending` | Claude |
+| T37 | `task/T37-monthly-reports` | Monthly Reports (v2) | — | `pending` | Codex |
+| T38 | `task/T38-login-neon` | Login Page Neon Dark | T18 | `completed` | Gemini CLI |
+
+### Phase 6: UX/UI & Actions (v2)
+
+| ID | Rama | Título | Dependencias | Status | Agent |
+|---|---|---|---|---|---|
+| T39 | `task/T39-skeleton-loaders` | Skeleton Loading States | — | `completed` | Gemini CLI |
+| T40 | `task/T40-edit-client` | Edit Client Dialog | — | `completed` | Gemini CLI |
+| T41 | `task/T41-renew-membership` | Renew Membership Dialog | T40 | `completed` | Gemini CLI |

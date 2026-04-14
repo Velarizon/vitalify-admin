@@ -17,8 +17,8 @@ import { add, format } from 'date-fns'
 interface Props {
   client: {
     id: number
-    name: string
-    last_name: string
+    name: string | null
+    last_name: string | null
     subscriptions: any[]
   } | null
   open: boolean
@@ -115,7 +115,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
 
           <div className="grid gap-2">
             <Label htmlFor="plan" className="text-xs">Nuevo Plan</Label>
-            <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+            <Select value={selectedPlanId} onValueChange={v => setSelectedPlanId(v ?? '')}>
               <SelectTrigger id="plan" className="h-8 text-xs">
                 <SelectValue placeholder="Seleccionar plan" />
               </SelectTrigger>
@@ -131,7 +131,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
 
           <div className="grid gap-2">
             <Label htmlFor="method" className="text-xs">Método de pago</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+            <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v ?? 'cash')}>
               <SelectTrigger id="method" className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>

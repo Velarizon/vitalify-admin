@@ -39,7 +39,7 @@ export function Sidebar() {
     const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
     return (
       <Tooltip key={item.href}>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           <Link
             href={item.href}
             onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false) }}

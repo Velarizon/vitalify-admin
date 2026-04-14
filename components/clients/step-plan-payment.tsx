@@ -91,7 +91,7 @@ export function StepPlanPayment({ data, onChange, plans }: Props) {
 
       <div className="space-y-1">
         <Label className="text-xs">Método de pago</Label>
-        <Select value={data.payment_method} onValueChange={v => set({ payment_method: v })}>
+        <Select value={data.payment_method} onValueChange={v => set({ payment_method: v ?? '' })}>
           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="cash">Efectivo</SelectItem>

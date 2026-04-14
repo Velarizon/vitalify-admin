@@ -46,7 +46,7 @@ export function StepPersonal({ data, onChange }: Props) {
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Género</Label>
-          <Select value={data.gender} onValueChange={v => set('gender', v)}>
+          <Select value={data.gender} onValueChange={v => set('gender', v ?? 'M')}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="M">Masculino</SelectItem>
