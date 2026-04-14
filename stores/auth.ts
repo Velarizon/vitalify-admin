@@ -20,9 +20,11 @@ export interface Location {
   company_id: number
 }
 
+export type UserRole = 'admin' | 'worker'
+
 export interface UserAccess {
   location: Location
-  role: 'admin' | 'worker'
+  role: UserRole
 }
 
 export interface UserData {
@@ -33,13 +35,13 @@ export interface UserData {
 interface AuthStore {
   isAuthenticated: boolean
   userData: UserData | null
-  role: 'admin' | 'worker' | null
-  setUserData: (userData: UserData, role: 'admin' | 'worker') => void
+  role: UserRole | null
+  setUserData: (userData: UserData, role: UserRole) => void
   clearUserData: () => void
 }
 
-export const useAuthStore = create(
-  persist<AuthStore>(
+export const useAuthStore = create<AuthStore>()(
+  persist(
     (set) => ({
       isAuthenticated: false,
       userData: null,

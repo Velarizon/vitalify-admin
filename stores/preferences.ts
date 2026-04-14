@@ -8,8 +8,8 @@ interface PreferencesStore {
   setSelectedLocation: (location: UserAccess | null) => void
 }
 
-export const usePreferencesStore = create(
-  persist<PreferencesStore>(
+export const usePreferencesStore = create<PreferencesStore>()(
+  persist(
     (set) => ({
       selectedLocation: null,
       setSelectedLocation: (location) => set({ selectedLocation: location }),
