@@ -22,7 +22,12 @@ Este archivo es el punto de entrada para todos los agentes (Claude, Gemini, GPT 
 git branch -a | grep task/
 
 # Tareas completadas = ramas ya mergeadas a main
-git log --oneline main | grep "Merge task/"
+git log --oneline --merges main | grep task/
+
+# Estado rápido completo
+echo "=== EN PROGRESO ===" && git branch | grep task/
+echo "=== COMPLETADAS ===" && git log --oneline --merges main | grep task/ | head -20
+echo "=== WORKTREES ACTIVOS ===" && git worktree list
 ```
 
 Si no existe una rama `task/T{ID}-*` → la tarea está libre.
@@ -36,17 +41,18 @@ Verificar dependencias primero (ver tabla abajo). Luego:
 git fetch origin
 
 # Crear worktree aislado para tu tarea
-git worktree add ../vitalify-admin-T03 -b task/T03-supabase-clients
-cd ../vitalify-admin-T03
+git worktree add ../vitalify-admin-T06 -b task/T06-middleware
+cd ../vitalify-admin-T06
+npm install
 ```
 
-El directorio `../vitalify-admin-T03` es tu espacio de trabajo aislado. Otros agentes trabajan en sus propios directorios simultáneamente sin conflictos.
+El directorio `../vitalify-admin-T06` es tu espacio de trabajo aislado.
 
 ### 3. Trabajar en la tarea
 
 Lee la tarea completa en el plan antes de escribir código:
 ```bash
-cat docs/superpowers/plans/2026-04-13-vitalify-admin.md | grep -A 200 "### Task 3"
+grep -n "### Task 6" docs/superpowers/plans/2026-04-13-vitalify-admin.md
 ```
 
 Sigue los pasos del plan exactamente — cada paso tiene código listo para usar.
@@ -54,25 +60,26 @@ Sigue los pasos del plan exactamente — cada paso tiene código listo para usar
 ### 4. Completar la tarea
 
 ```bash
-# Dentro de tu worktree (ej: ../vitalify-admin-T03)
+# Dentro de tu worktree (ej: ../vitalify-admin-T06)
 git add .
-git commit -m "feat: add Supabase browser and server clients"
+git commit -m "feat: add auth middleware with role-based routing"
 
 # Mergear a main
 cd ../vitalify-admin
-git merge task/T03-supabase-clients --no-ff -m "Merge task/T03-supabase-clients"
+git merge task/T06-middleware --no-ff -m "Merge task/T06-middleware"
 
 # Limpiar el worktree
-git worktree remove ../vitalify-admin-T03
-git branch -d task/T03-supabase-clients
+git worktree remove ../vitalify-admin-T06
+git branch -d task/T06-middleware
 ```
 
 ### Reglas
 
-- **Dependencias primero.** No tomes T06 si T03 o T04 no están mergeadas en `main`.
+- **Dependencias primero.** No tomes T09 si T03 o T05 no están mergeadas en `main`.
 - **Una rama = una tarea = un agente.** Si la rama existe, no la tomes.
 - **Siempre desde main actualizado.** Antes de crear tu worktree, `git pull origin main`.
 - **No editar archivos de otras tareas.** Tu worktree tiene todo el repo pero solo modifica los archivos de tu tarea (listados en el plan).
+- **Los agentes NO tienen permisos Bash en subagent mode.** Si eres un subagente, necesitas que el agente coordinador corra los comandos git y npm. Escribe los archivos con Write/Edit y pide al coordinador que haga los commits.
 
 ---
 
@@ -83,30 +90,53 @@ git branch -d task/T03-supabase-clients
 > - `in_progress` → rama `task/T{ID}-*` existe
 > - `completed` → mergeada a `main`
 
-### Phase 1: Foundation
+### Phase 1: Foundation ✅ COMPLETADA
 
 | ID | Rama | Título | Dependencias | Status |
 |---|---|---|---|---|
-| T01 | `task/T01-scaffold` | Scaffold Next.js 15 + Vitest | — | `pending` |
-| T02 | `task/T02-shadcn-tailwind` | shadcn/ui + Tailwind emerald + dark mode | T01 | `pending` |
-| T03 | `task/T03-supabase-clients` | Supabase clients + tipos | T01 | `pending` |
-| T04 | `task/T04-zustand-stores` | Zustand stores (auth + preferences) | T01 | `pending` |
-| T05 | `task/T05-db-migration` | DB migration (shifts) + computeShiftTotals | T01 | `pending` |
+| T01 | `task/T01-scaffold` | Scaffold Next.js 15 + Vitest | — | `completed` |
+| T02 | `task/T02-shadcn-tailwind` | shadcn/ui + Tailwind emerald + dark mode | T01 | `completed` |
+| T03 | `task/T03-supabase-clients` | Supabase clients + tipos | T01 | `completed` |
+| T04 | `task/T04-zustand-stores` | Zustand stores (auth + preferences) | T01 | `completed` |
+| T05 | `task/T05-db-migration` | DB migration (shifts) + computeShiftTotals | T01 | `completed` |
 | T06 | `task/T06-middleware` | Middleware auth + role routing | T03, T04 | `pending` |
 
-### Phase 2: Auth & Shell
+### Phase 2: Auth & Shell — 🔓 LISTA PARA OLEADA 2
 
 | ID | Rama | Título | Dependencias | Status |
 |---|---|---|---|---|
-| T07 | `task/T07-login` | Login page + auth actions | T03, T04 | `pending` |
-| T08 | `task/T08-layout` | Sidebar + Topbar + Dashboard layout | T02, T04 | `pending` |
-| T09 | `task/T09-shift-blocker` | ShiftBlocker modal + shifts actions base | T03, T05 | `pending` |
+| T06 | `task/T06-middleware` | Middleware auth + role routing | T03 ✅, T04 ✅ | `pending` |
+| T07 | `task/T07-login` | Login page + auth actions | T03 ✅, T04 ✅ | `pending` |
+| T08 | `task/T08-layout` | Sidebar + Topbar + Dashboard layout | T02 ✅, T04 ✅ | `pending` |
+| T09 | `task/T09-shift-blocker` | ShiftBlocker modal + shifts actions base | T03 ✅, T05 ✅ | `pending` |
+| T10 | `task/T10-shared-components` | Shared DataTable + MetricCard | T02 ✅ | `pending` |
+
+> ⚠️ **T09 requiere migración SQL manual.** Antes de que T09 funcione end-to-end, ejecutar en Supabase SQL Editor (`https://supabase.com/dashboard/project/ekpujtewohbquqjwtowr/sql/new`):
+> ```sql
+> CREATE TABLE shifts (
+>   id              serial PRIMARY KEY,
+>   location_id     integer NOT NULL REFERENCES locations(id),
+>   opened_by       uuid NOT NULL,
+>   opened_at       timestamptz NOT NULL DEFAULT now(),
+>   closed_at       timestamptz,
+>   cash_amount     numeric NOT NULL DEFAULT 0,
+>   card_amount     numeric NOT NULL DEFAULT 0,
+>   other_amount    numeric NOT NULL DEFAULT 0,
+>   total_amount    numeric NOT NULL DEFAULT 0,
+>   notes           text
+> );
+> CREATE INDEX idx_shifts_opened_by_location ON shifts(opened_by, location_id);
+> CREATE INDEX idx_shifts_location_closed ON shifts(location_id, closed_at);
+> ALTER TABLE payments
+>   ADD COLUMN IF NOT EXISTS shift_id integer REFERENCES shifts(id),
+>   ADD COLUMN IF NOT EXISTS registered_by uuid;
+> CREATE INDEX idx_payments_shift ON payments(shift_id);
+> ```
 
 ### Phase 3: Migrated screens
 
 | ID | Rama | Título | Dependencias | Status |
 |---|---|---|---|---|
-| T10 | `task/T10-shared-components` | Shared DataTable + MetricCard | T02 | `pending` |
 | T11 | `task/T11-dashboard-page` | Dashboard page | T09, T10 | `pending` |
 | T12 | `task/T12-clients-page` | Clients page + CreateClientSheet | T09, T10 | `pending` |
 | T13 | `task/T13-payments-page` | Payments page + actions | T09, T10 | `pending` |
@@ -118,7 +148,7 @@ git branch -d task/T03-supabase-clients
 |---|---|---|---|---|
 | T15 | `task/T15-shifts-pages` | Shifts pages (lista + detalle + cierre) | T09, T10 | `pending` |
 | T16 | `task/T16-workers-page` | Workers page + actions | T09, T10 | `pending` |
-| T17 | `task/T17-terminal` | Terminal adapter + API route + page | T02, T03 | `pending` |
+| T17 | `task/T17-terminal` | Terminal adapter + API route + page | T02 ✅, T03 ✅ | `pending` |
 
 ---
 
@@ -138,11 +168,47 @@ T01 ──┬──► T02 ──┬──► T08
       └──► T05 ──► T09
 ```
 
-**Oleada 1** (después de T01): T02, T03, T04, T05 → **4 agentes en paralelo**
+**Oleada 1** ✅ COMPLETADA: T01 → T02, T03, T04, T05
 
-**Oleada 2** (después de oleada 1): T06, T07, T08, T09, T10 → **hasta 5 agentes en paralelo**
+**Oleada 2** 🔓 LISTA: T06, T07, T08, T09, T10 → **5 agentes en paralelo**
 
 **Oleada 3** (después de oleada 2): T11, T12, T13, T14, T15, T16, T17 → **hasta 7 agentes en paralelo**
+
+---
+
+## Notas técnicas importantes para agentes
+
+### Decisiones tomadas en Phase 1 que afectan tu tarea
+
+1. **Zustand v5 idiom:** Usar `create<T>()(persist(...))` — NO `create(persist<T>(...))`.
+
+2. **`UserRole` es un tipo exportado en `stores/auth.ts`:**
+   ```typescript
+   export type UserRole = 'admin' | 'worker'
+   ```
+   Importar de ahí, no redefinir el union type.
+
+3. **`ShiftPayment.amount` es `number | null`** (no solo `number`) — siempre usar `?? 0` al operar.
+
+4. **`tw-animate-css` requiere ruta relativa** en globals.css:
+   ```css
+   @import "../node_modules/tw-animate-css/dist/tw-animate.css";
+   ```
+   (Turbopack no resuelve la condición `"style"` del exports map.)
+
+5. **shadcn style es `"base-nova"`** — no `"default"` ni `"new-york"`. Los componentes generados tienen ese estilo.
+
+6. **`@supabase/ssr` cookie pattern:** El `try/catch` vacío en `setAll` de `server.ts` es intencional — no remover.
+
+7. **`app/page.tsx` tiene boilerplate** de create-next-app — se reemplaza en T08.
+
+### Variables de entorno
+
+`.env.local` debe existir en la raíz con:
+```
+NEXT_PUBLIC_SUPABASE_URL=https://ekpujtewohbquqjwtowr.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<copiar de kraken-web/.env como VITE_SUPABASE_ANON_KEY>
+```
 
 ---
 
@@ -162,12 +228,12 @@ echo "=== WORKTREES ACTIVOS ===" && git worktree list
 
 | Capa | Tecnología |
 |---|---|
-| Framework | Next.js 15, App Router |
-| UI | shadcn/ui + Tailwind CSS (paleta emerald) |
+| Framework | Next.js 16 (16.2.3), App Router |
+| UI | shadcn/ui (base-nova) + Tailwind CSS v4 (paleta emerald) |
 | Auth / DB | Supabase + @supabase/ssr (cookie-based) |
-| Estado cliente | Zustand (persistido en localStorage) |
+| Estado cliente | Zustand v5 (persistido en localStorage) |
 | Data fetching | Server Components (fetches) + Server Actions (mutaciones) |
-| Test | Vitest + @testing-library/react |
+| Test | Vitest v4 + @testing-library/react |
 | Terminal | Clase Terminal (proxy a agente Hikvision local) |
 
 ## Variables de entorno requeridas
@@ -180,7 +246,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<copiar de kraken-web/.env>
 
 ## Fuente de datos
 
-Mismo proyecto Supabase que `kraken-web`. La migración en T05 agrega la tabla `shifts` y columnas `shift_id` + `registered_by` en `payments` — cambios aditivos, no rompen nada existente.
+Mismo proyecto Supabase que `kraken-web`. La migración en T05 agrega la tabla `shifts` y columnas `shift_id` + `registered_by` en `payments` — cambios aditivos, no rompen nada existente. **La migración SQL aún no se ha ejecutado en Supabase** — ver nota en T09.
 
 ---
 
@@ -189,3 +255,5 @@ Mismo proyecto Supabase que `kraken-web`. La migración en T05 agrega la tabla `
 | Fecha | Agente | Acción |
 |---|---|---|
 | 2026-04-13 | Claude Sonnet 4.6 | Creó spec, plan, AGENTS.md, CLAUDE.md, GEMINI.md |
+| 2026-04-13 | Claude Sonnet 4.6 | Rediseñó coordinación a git-branch-based (sin editar AGENTS.md) |
+| 2026-04-14 | Claude Sonnet 4.6 | Completó Phase 1: T01–T05 mergeadas a main |
