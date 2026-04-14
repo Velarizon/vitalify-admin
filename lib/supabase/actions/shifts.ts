@@ -78,3 +78,17 @@ export async function getShifts(locationId: number, userId?: string) {
   if (error) throw new Error(error.message)
   return data ?? []
 }
+
+export async function getShiftDetail(shiftId: number) {
+  const supabase = await createClient()
+  const [shiftRes, paymentsRes] = await Promise.all([
+    supabase.from('shifts').select('*').eq('id', shiftId).single(),
+    supabase
+      .from('payments')
+      .select(`*, subscriptions(*, clients(*))`)
+      .eq('shift_id', shiftId)
+      .order('payment_date', { ascending: true }),
+  ])
+  if (shiftRes.error) throw new Error(shiftRes.error.message)
+  return { shift: shiftRes.data, payments: paymentsRes.data ?? [] }
+}
