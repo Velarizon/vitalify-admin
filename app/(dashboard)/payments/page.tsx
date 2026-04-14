@@ -7,6 +7,7 @@ import { DataTable } from '@/components/shared/data-table'
 import { getPayments } from '@/lib/supabase/actions/payments'
 import { usePreferencesStore } from '@/stores/preferences'
 import { Badge } from '@/components/ui/badge'
+import { TableSkeleton } from '@/components/shared/table-skeleton'
 
 type Payment = Awaited<ReturnType<typeof getPayments>>[number]
 
@@ -57,7 +58,7 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-3">
       <h1 className="text-lg font-semibold">Pagos</h1>
-      {loading ? <p className="text-xs text-muted-foreground">Cargando...</p>
+      {loading ? <TableSkeleton />
         : <DataTable columns={columns} data={payments} searchPlaceholder="Buscar pago..." />}
     </div>
   )
