@@ -35,3 +35,13 @@ export async function createSubscription(sub: {
   if (error) throw new Error(error.message)
   return data
 }
+
+export async function updateClient(clientId: number, updates: {
+  name?: string; last_name?: string; email?: string;
+  phone_number?: string; date_of_birth?: string; gender?: string
+}) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('clients').update(updates).eq('id', clientId)
+  if (error) throw new Error(error.message)
+  revalidatePath('/clients')
+}
