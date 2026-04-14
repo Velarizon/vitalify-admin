@@ -7,13 +7,16 @@ Eres un agente de implementación trabajando en **Vitalify Admin**, un panel de 
 ## Lo primero que debes hacer al iniciar
 
 1. Lee `AGENTS.md` — es el tablero de coordinación multi-agente
-2. Encuentra una tarea con `status: pending` cuyas dependencias estén `completed`
-3. Usa `superpowers:subagent-driven-development` o `superpowers:executing-plans` para ejecutar la tarea
-4. Actualiza `AGENTS.md` con tu nombre y el nuevo status antes y después de trabajar
+2. Verifica qué tareas están libres: `git branch -a | grep task/` (si no existe la rama, la tarea está libre)
+3. Verifica que las dependencias de tu tarea estén mergeadas en `main`
+4. Crea un worktree aislado: `git worktree add ../vitalify-admin-T{ID} -b task/T{ID}-{slug}`
+5. Lee la tarea completa en `docs/superpowers/plans/2026-04-13-vitalify-admin.md`
+6. Implementa paso a paso siguiendo el plan exactamente
+7. Al terminar: commit + merge a main + limpiar worktree (ver protocolo completo en AGENTS.md)
 
 ## Documentos clave
 
-- `AGENTS.md` — Task board (fuente de verdad del estado de cada tarea)
+- `AGENTS.md` — Task board + protocolo worktrees (fuente de verdad)
 - `docs/superpowers/plans/2026-04-13-vitalify-admin.md` — Plan completo con código para cada tarea
 - `docs/superpowers/specs/2026-04-13-vitalify-admin-design.md` — Diseño y arquitectura
 
@@ -31,7 +34,8 @@ Next.js 15 App Router · shadcn/ui · Tailwind CSS emerald · Supabase SSR · Zu
 
 ## Reglas importantes
 
+- La existencia de la rama `task/T{ID}-*` indica que la tarea está tomada — no la dupliques
 - Cada tarea tiene su propio commit (mensaje exacto en el plan)
-- No empezar una tarea si sus dependencias no están `completed` en AGENTS.md
-- Actualizar AGENTS.md en el mismo commit que el código de la tarea
+- No empezar una tarea si sus dependencias no están mergeadas en `main`
+- Tu worktree es aislado — no te preocupes por conflictos con otros agentes
 - El proyecto vive en este directorio — no modificar kraken-web

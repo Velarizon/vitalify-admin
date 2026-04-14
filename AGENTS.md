@@ -1,6 +1,6 @@
 # Vitalify Admin — Agent Coordination Board
 
-Este archivo es el punto de entrada para todos los agentes (Claude, GPT, Gemini, u otros LLMs) que trabajen en este proyecto. Contiene el estado de cada tarea, quién la tiene asignada, y cómo colaborar sin pisarse.
+Este archivo es el punto de entrada para todos los agentes (Claude, Gemini, GPT Codex, Copilot) que trabajen en este proyecto. La coordinación funciona via **ramas git** — no via edición de este archivo. La existencia de una rama es la señal de ownership; el merge a `main` es la señal de completado.
 
 ---
 
@@ -8,96 +8,153 @@ Este archivo es el punto de entrada para todos los agentes (Claude, GPT, Gemini,
 
 | Documento | Ruta |
 |---|---|
-| Plan de implementación (tareas detalladas con código) | `docs/superpowers/plans/2026-04-13-vitalify-admin.md` |
-| Spec de diseño (arquitectura, decisiones, DB schema) | `docs/superpowers/specs/2026-04-13-vitalify-admin-design.md` |
+| Plan de implementación (tareas con código completo) | `docs/superpowers/plans/2026-04-13-vitalify-admin.md` |
+| Spec de diseño (arquitectura, DB schema, decisiones) | `docs/superpowers/specs/2026-04-13-vitalify-admin-design.md` |
 
 ---
 
-## Protocolo para agentes
+## Protocolo para agentes con worktrees
 
-### Antes de empezar una tarea
-1. Lee este archivo para ver qué tareas están disponibles (`status: pending`)
-2. Verifica que sus dependencias estén `completed`
-3. Actualiza este archivo: cambia tu tarea a `status: in_progress` y pon tu nombre en `agent`
-4. Lee la tarea completa en el plan antes de escribir código
+### 1. Ver qué tareas están disponibles
 
-### Al completar una tarea
-1. Haz commit del código con el mensaje indicado en el plan
-2. Actualiza este archivo: cambia tu tarea a `status: completed`
-3. Deja una nota en `notes` si encontraste algo importante para los siguientes agentes
+```bash
+# Tareas en progreso = ramas que existen
+git branch -a | grep task/
 
-### Reglas de concurrencia
-- **No tomes una tarea con dependencias pendientes.** Si la Task N requiere que Task M esté `completed`, espera.
-- **Una tarea = un agente.** Si está `in_progress`, no la tomes.
-- **Este archivo es la fuente de verdad.** Si hay conflicto entre el plan y este archivo, prevalece este archivo.
-- **Haz commit de AGENTS.md junto con cada cambio de status.**
+# Tareas completadas = ramas ya mergeadas a main
+git log --oneline main | grep "Merge task/"
+```
+
+Si no existe una rama `task/T{ID}-*` → la tarea está libre.
+
+### 2. Tomar una tarea
+
+Verificar dependencias primero (ver tabla abajo). Luego:
+
+```bash
+# Desde la raíz del repo principal
+git fetch origin
+
+# Crear worktree aislado para tu tarea
+git worktree add ../vitalify-admin-T03 -b task/T03-supabase-clients
+cd ../vitalify-admin-T03
+```
+
+El directorio `../vitalify-admin-T03` es tu espacio de trabajo aislado. Otros agentes trabajan en sus propios directorios simultáneamente sin conflictos.
+
+### 3. Trabajar en la tarea
+
+Lee la tarea completa en el plan antes de escribir código:
+```bash
+cat docs/superpowers/plans/2026-04-13-vitalify-admin.md | grep -A 200 "### Task 3"
+```
+
+Sigue los pasos del plan exactamente — cada paso tiene código listo para usar.
+
+### 4. Completar la tarea
+
+```bash
+# Dentro de tu worktree (ej: ../vitalify-admin-T03)
+git add .
+git commit -m "feat: add Supabase browser and server clients"
+
+# Mergear a main
+cd ../vitalify-admin
+git merge task/T03-supabase-clients --no-ff -m "Merge task/T03-supabase-clients"
+
+# Limpiar el worktree
+git worktree remove ../vitalify-admin-T03
+git branch -d task/T03-supabase-clients
+```
+
+### Reglas
+
+- **Dependencias primero.** No tomes T06 si T03 o T04 no están mergeadas en `main`.
+- **Una rama = una tarea = un agente.** Si la rama existe, no la tomes.
+- **Siempre desde main actualizado.** Antes de crear tu worktree, `git pull origin main`.
+- **No editar archivos de otras tareas.** Tu worktree tiene todo el repo pero solo modifica los archivos de tu tarea (listados en el plan).
 
 ---
 
 ## Task Board
 
+> **Cómo leer el estado:**
+> - `pending` → rama no existe, libre para tomar
+> - `in_progress` → rama `task/T{ID}-*` existe
+> - `completed` → mergeada a `main`
+
 ### Phase 1: Foundation
 
-| ID | Título | Dependencias | Agent | Status | Notes |
-|---|---|---|---|---|---|
-| T01 | Scaffold Next.js 15 + Vitest | — | — | `pending` | |
-| T02 | shadcn/ui + Tailwind emerald + dark mode | T01 | — | `pending` | |
-| T03 | Supabase clients + tipos | T01 | — | `pending` | Copiar .env de kraken-web |
-| T04 | Zustand stores (auth + preferences) | T01 | — | `pending` | |
-| T05 | DB migration (shifts) + computeShiftTotals | T01 | — | `pending` | Requiere acceso a Supabase Dashboard |
-| T06 | Middleware auth + role routing | T03, T04 | — | `pending` | |
+| ID | Rama | Título | Dependencias | Status |
+|---|---|---|---|---|
+| T01 | `task/T01-scaffold` | Scaffold Next.js 15 + Vitest | — | `pending` |
+| T02 | `task/T02-shadcn-tailwind` | shadcn/ui + Tailwind emerald + dark mode | T01 | `pending` |
+| T03 | `task/T03-supabase-clients` | Supabase clients + tipos | T01 | `pending` |
+| T04 | `task/T04-zustand-stores` | Zustand stores (auth + preferences) | T01 | `pending` |
+| T05 | `task/T05-db-migration` | DB migration (shifts) + computeShiftTotals | T01 | `pending` |
+| T06 | `task/T06-middleware` | Middleware auth + role routing | T03, T04 | `pending` |
 
 ### Phase 2: Auth & Shell
 
-| ID | Título | Dependencias | Agent | Status | Notes |
-|---|---|---|---|---|---|
-| T07 | Login page + auth actions | T03, T04 | — | `pending` | |
-| T08 | Sidebar + Topbar + Dashboard layout | T02, T04 | — | `pending` | Incluye shift warning en logout |
-| T09 | ShiftBlocker modal + shifts actions base | T03, T05 | — | `pending` | Bloqueo obligatorio para WORKER |
+| ID | Rama | Título | Dependencias | Status |
+|---|---|---|---|---|
+| T07 | `task/T07-login` | Login page + auth actions | T03, T04 | `pending` |
+| T08 | `task/T08-layout` | Sidebar + Topbar + Dashboard layout | T02, T04 | `pending` |
+| T09 | `task/T09-shift-blocker` | ShiftBlocker modal + shifts actions base | T03, T05 | `pending` |
 
 ### Phase 3: Migrated screens
 
-| ID | Título | Dependencias | Agent | Status | Notes |
-|---|---|---|---|---|---|
-| T10 | Shared DataTable + MetricCard | T02 | — | `pending` | Base para todas las pantallas de datos |
-| T11 | Dashboard page | T09, T10 | — | `pending` | |
-| T12 | Clients page + CreateClientSheet | T09, T10 | — | `pending` | Sheet 3 pasos: datos, biométrico, suscripción |
-| T13 | Payments page + actions | T09, T10 | — | `pending` | Columnas registered_by + shift_id |
-| T14 | Plans, Locations, Reports pages | T09, T10 | — | `pending` | |
+| ID | Rama | Título | Dependencias | Status |
+|---|---|---|---|---|
+| T10 | `task/T10-shared-components` | Shared DataTable + MetricCard | T02 | `pending` |
+| T11 | `task/T11-dashboard-page` | Dashboard page | T09, T10 | `pending` |
+| T12 | `task/T12-clients-page` | Clients page + CreateClientSheet | T09, T10 | `pending` |
+| T13 | `task/T13-payments-page` | Payments page + actions | T09, T10 | `pending` |
+| T14 | `task/T14-plans-locations-reports` | Plans, Locations, Reports pages | T09, T10 | `pending` |
 
 ### Phase 4: New features
 
-| ID | Título | Dependencias | Agent | Status | Notes |
-|---|---|---|---|---|---|
-| T15 | Shifts pages (lista + detalle + cierre) | T09, T10 | — | `pending` | Flujo completo de corte de caja |
-| T16 | Workers page + actions | T09, T10 | — | `pending` | |
-| T17 | Terminal adapter + API route + page | T02, T03 | — | `pending` | Copiar lógica de kraken-web/src/utils/terminal/terminal.ts |
+| ID | Rama | Título | Dependencias | Status |
+|---|---|---|---|---|
+| T15 | `task/T15-shifts-pages` | Shifts pages (lista + detalle + cierre) | T09, T10 | `pending` |
+| T16 | `task/T16-workers-page` | Workers page + actions | T09, T10 | `pending` |
+| T17 | `task/T17-terminal` | Terminal adapter + API route + page | T02, T03 | `pending` |
 
 ---
 
-## Mapa de dependencias
+## Mapa de dependencias y parallelismo
 
 ```
 T01 ──┬──► T02 ──┬──► T08
-      │          └──► T10 ──┬──► T11
-      ├──► T03 ──┬──► T06   ├──► T12
-      │          ├──► T07   ├──► T13
-      │          ├──► T09 ──┤──► T14
-      │          └──► T17   ├──► T15
-      ├──► T04 ──┬──► T06   └──► T16
+      │          ├──► T10 ──┬──► T11
+      ├──► T03 ──┤          ├──► T12
+      │          ├──► T06   ├──► T13
+      │          ├──► T07   ├──► T14
+      │          ├──► T09 ──┤──► T15
+      │          └──► T17   └──► T16
+      ├──► T04 ──┬──► T06
       │          ├──► T07
       │          └──► T08
       └──► T05 ──► T09
 ```
 
-### Tareas paralelizables una vez que T01 está completo
+**Oleada 1** (después de T01): T02, T03, T04, T05 → **4 agentes en paralelo**
 
-- T02, T03, T04, T05 se pueden ejecutar **en paralelo** (sin dependencias entre sí)
-- T06, T07 pueden correr en paralelo una vez T03 y T04 estén listos
-- T08 puede correr en paralelo con T06/T07 una vez T02 y T04 estén listos
-- T09 puede correr en paralelo con T07/T08 una vez T03 y T05 estén listos
-- T10 puede correr en paralelo con T07/T08/T09 una vez T02 esté listo
-- T11–T16 pueden correr **en paralelo entre sí** una vez T09 y T10 estén listos
+**Oleada 2** (después de oleada 1): T06, T07, T08, T09, T10 → **hasta 5 agentes en paralelo**
+
+**Oleada 3** (después de oleada 2): T11, T12, T13, T14, T15, T16, T17 → **hasta 7 agentes en paralelo**
+
+---
+
+## Verificar estado actual (comando rápido)
+
+```bash
+cd /Users/krissk1ng/Documents/kraken/vitalify-admin
+
+echo "=== EN PROGRESO ===" && git branch | grep task/
+echo "=== COMPLETADAS ===" && git log --oneline --merges main | grep task/ | head -20
+echo "=== WORKTREES ACTIVOS ===" && git worktree list
+```
 
 ---
 
@@ -109,26 +166,26 @@ T01 ──┬──► T02 ──┬──► T08
 | UI | shadcn/ui + Tailwind CSS (paleta emerald) |
 | Auth / DB | Supabase + @supabase/ssr (cookie-based) |
 | Estado cliente | Zustand (persistido en localStorage) |
-| Data fetching | Server Components (fetches iniciales) + Server Actions (mutaciones) |
+| Data fetching | Server Components (fetches) + Server Actions (mutaciones) |
 | Test | Vitest + @testing-library/react |
-| Terminal | Clase Terminal (proxy al agente Hikvision local) |
+| Terminal | Clase Terminal (proxy a agente Hikvision local) |
 
 ## Variables de entorno requeridas
 
 ```bash
-# .env.local
+# .env.local (no commiteado)
 NEXT_PUBLIC_SUPABASE_URL=https://ekpujtewohbquqjwtowr.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<copiar de kraken-web/.env>
 ```
 
 ## Fuente de datos
 
-El proyecto usa el **mismo proyecto Supabase que kraken-web**. No crear uno nuevo. La DB ya tiene las tablas `clients`, `subscriptions`, `plans`, `payments`, `locations`, `companies`, `user_access`. La migración en T05 agrega `shifts` y columnas nuevas en `payments`.
+Mismo proyecto Supabase que `kraken-web`. La migración en T05 agrega la tabla `shifts` y columnas `shift_id` + `registered_by` en `payments` — cambios aditivos, no rompen nada existente.
 
 ---
 
-## Historial de agentes
+## Historial
 
 | Fecha | Agente | Acción |
 |---|---|---|
-| 2026-04-13 | Claude Sonnet 4.6 (kraken-web session) | Creó spec, plan, y este archivo de coordinación |
+| 2026-04-13 | Claude Sonnet 4.6 | Creó spec, plan, AGENTS.md, CLAUDE.md, GEMINI.md |
