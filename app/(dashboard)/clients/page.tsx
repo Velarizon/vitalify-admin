@@ -10,51 +10,29 @@ import { Button } from '@/components/ui/button'
 import { getClients } from '@/lib/supabase/actions/clients'
 import { getPlans } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
-import { Plus } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientSheet } from '@/components/clients/create-client-sheet'
+import { EditClientDialog } from '@/components/clients/edit-client-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type Client = Awaited<ReturnType<typeof getClients>>[number]
 
 function statusBadge(client: Client) {
   const sub = client.subscriptions?.[0]
-  if (!sub) return <Badge variant="outline" className="text-yellow-600">Baja</Badge>
+  if (!sub) return <Badge variant="outline" className="text-[#FF9F0A]">Baja</Badge>
   const expired = new Date() > new Date(sub.end_date ?? 0)
   return expired
     ? <Badge variant="destructive">Vencido</Badge>
-    : <Badge className="bg-emerald-600">Vigente</Badge>
+    : <Badge className="bg-primary">Vigente</Badge>
 }
-
-const columns: ColumnDef<Client>[] = [
-  {
-    header: 'Estado',
-    cell: ({ row }) => statusBadge(row.original),
-  },
-  {
-    header: 'Foto',
-    cell: ({ row }) => (
-      <Avatar className="h-6 w-6">
-        <AvatarImage src={row.original.image_url ?? ''} />
-        <AvatarFallback className="text-xs">
-          {row.original.name?.[0]}{row.original.last_name?.[0]}
-        </AvatarFallback>
-      </Avatar>
-    ),
-  },
-  { accessorKey: 'name', header: 'Nombre' },
-  { accessorKey: 'last_name', header: 'Apellido' },
-  {
-    header: 'Plan',
-    cell: ({ row }) => (row.original.subscriptions as any)?.[0]?.plans?.name ?? '—',
-  },
-  { accessorKey: 'email', header: 'Email' },
-  {
-    header: 'Edad',
-    cell: ({ row }) => row.original.date_of_birth
-      ? new Date().getFullYear() - new Date(row.original.date_of_birth).getFullYear()
-      : '—',
-  },
-]
 
 export default function ClientsPage() {
   const { userData } = useAuthStore()
@@ -62,6 +40,7 @@ export default function ClientsPage() {
   const [plans, setPlans] = useState<{ id: number; name: string; duration: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   const load = async () => {
     if (!userData) return
@@ -80,6 +59,60 @@ export default function ClientsPage() {
 
   useEffect(() => { load() }, [userData])
 
+  const columns: ColumnDef<Client>[] = [
+    {
+      header: 'Estado',
+      cell: ({ row }) => statusBadge(row.original),
+    },
+    {
+      header: 'Foto',
+      cell: ({ row }) => (
+        <Avatar className="h-6 w-6">
+          <AvatarImage src={row.original.image_url ?? ''} />
+          <AvatarFallback className="text-xs">
+            {row.original.name?.[0]}{row.original.last_name?.[0]}
+          </AvatarFallback>
+        </Avatar>
+      ),
+    },
+    { accessorKey: 'name', header: 'Nombre' },
+    { accessorKey: 'last_name', header: 'Apellido' },
+    {
+      header: 'Plan',
+      cell: ({ row }) => (row.original.subscriptions as any)?.[0]?.plans?.name ?? '—',
+    },
+    { accessorKey: 'email', header: 'Email' },
+    {
+      header: 'Edad',
+      cell: ({ row }) => row.original.date_of_birth
+        ? new Date().getFullYear() - new Date(row.original.date_of_birth).getFullYear()
+        : '—',
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-6 w-6 p-0">
+              <span className="sr-only">Abrir menú</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[160px]">
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Acciones</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => setEditingClient(row.original)}
+              className="text-xs gap-2"
+            >
+              <Pencil className="h-3 w-3" /> Editar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -97,6 +130,12 @@ export default function ClientsPage() {
         open={showCreate}
         onClose={() => { setShowCreate(false); load() }}
         plans={plans}
+      />
+      <EditClientDialog
+        client={editingClient}
+        open={!!editingClient}
+        onClose={() => setEditingClient(null)}
+        onSuccess={load}
       />
     </div>
   )
