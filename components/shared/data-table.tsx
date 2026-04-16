@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
+import { Search } from 'lucide-react'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -41,23 +43,28 @@ export function DataTable<TData, TValue>({
   const end = Math.min((pageIndex + 1) * currentPageSize, totalRows)
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Input
-          placeholder={searchPlaceholder}
-          value={globalFilter}
-          onChange={e => setGlobalFilter(e.target.value)}
-          className="h-8 w-56 text-xs"
-        />
+    <div className="space-y-4">
+      {/* HUD Toolbar */}
+      <div className="flex items-center justify-between gap-4 flex-wrap bg-secondary/10 p-2 rounded-lg border border-white/5">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/50" />
+          <Input
+            placeholder={searchPlaceholder}
+            value={globalFilter}
+            onChange={e => setGlobalFilter(e.target.value)}
+            className="h-9 w-64 text-xs pl-9 bg-background/50 border-border/40 focus:border-primary/30 transition-all"
+          />
+        </div>
         {toolbar}
       </div>
-      <div className="rounded-md border overflow-x-auto">
+
+      <div className="rounded-xl overflow-hidden border border-white/5 bg-background/20 backdrop-blur-sm">
         <Table className="min-w-[600px]">
-          <TableHeader>
+          <TableHeader className="bg-secondary/20">
             {table.getHeaderGroups().map(hg => (
-              <TableRow key={hg.id}>
+              <TableRow key={hg.id} className="border-b border-white/5 hover:bg-transparent">
                 {hg.headers.map(h => (
-                  <TableHead key={h.id} className="h-8 text-[10px] uppercase tracking-wider px-3 text-muted-foreground">
+                  <TableHead key={h.id} className="h-10 text-[9px] uppercase tracking-[0.2em] font-black px-4 text-muted-foreground/70">
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
@@ -67,9 +74,12 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map(row => (
-                <TableRow key={row.id} className="h-9">
+                <TableRow 
+                  key={row.id} 
+                  className="group border-none hover:bg-primary/[0.03] transition-colors duration-200"
+                >
                   {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id} className="py-1 px-3 text-xs">
+                    <TableCell key={cell.id} className="py-3 px-4 text-xs border-none">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -77,36 +87,55 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-16 text-center text-xs text-muted-foreground">
-                  Sin resultados.
+                <TableCell colSpan={columns.length} className="h-24 text-center text-xs text-muted-foreground uppercase tracking-widest">
+                  Sin registros detectados en la base.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between text-xs text-muted-foreground flex-wrap gap-2">
-        <span>
-          {totalRows > 0 ? `Mostrando ${start}–${end} de ${totalRows}` : '0 resultados'}
-        </span>
+
+      {/* HUD Footer Pagination */}
+      <div className="flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <span>
+            {totalRows > 0 ? `Entradas ${start} a ${end} de ${totalRows}` : '0 Resultados'}
+          </span>
+          <div className="h-4 w-[1px] bg-border/40" />
+          <div className="flex items-center gap-2">
+            <span>Mostrar</span>
+            <Select
+              value={String(currentPageSize)}
+              onValueChange={v => { setPageSize(Number(v)); table.setPageSize(Number(v)) }}
+            >
+              <SelectTrigger className="h-6 w-16 text-[9px] bg-transparent border-border/40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25" className="text-[9px]">25</SelectItem>
+                <SelectItem value="50" className="text-[9px]">50</SelectItem>
+                <SelectItem value="100" className="text-[9px]">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
-          <Select
-            value={String(currentPageSize)}
-            onValueChange={v => { setPageSize(Number(v)); table.setPageSize(Number(v)) }}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 text-[9px] px-3 font-bold uppercase tracking-widest hover:bg-primary/10 transition-all"
+            onClick={() => table.previousPage()} 
+            disabled={!table.getCanPreviousPage()}
           >
-            <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" className="h-7 text-xs px-2"
-            onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
             Anterior
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs px-2"
-            onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 text-[9px] px-3 font-bold uppercase tracking-widest hover:bg-primary/10 transition-all"
+            onClick={() => table.nextPage()} 
+            disabled={!table.getCanNextPage()}
+          >
             Siguiente
           </Button>
         </div>

@@ -6,7 +6,8 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -14,6 +15,7 @@ import { getLocations } from '@/lib/supabase/actions/locations'
 import { deactivateWorker, getWorkers, inviteWorker, updateWorker } from '@/lib/supabase/actions/workers'
 import { useAuthStore, type UserRole } from '@/stores/auth'
 import { toast } from 'sonner'
+import { UserPlus, Pencil, ShieldAlert, ShieldCheck, MapPin, Mail } from 'lucide-react'
 
 type Worker = Awaited<ReturnType<typeof getWorkers>>[number]
 type Location = Awaited<ReturnType<typeof getLocations>>[number]
@@ -164,41 +166,77 @@ export default function WorkersPage() {
 
   const columns: ColumnDef<Worker>[] = [
     {
-      header: 'Email',
-      cell: ({ row }) =>
-        row.original.email ??
-        (row.original.user_id ? `${row.original.user_id.slice(0, 8)}...` : '—'),
+      header: 'Trabajador',
+      cell: ({ row }) => {
+        const email = row.original.email ?? ''
+        const initials = email.slice(0, 2).toUpperCase() || 'W'
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8 border border-border/50">
+              <AvatarFallback className="text-[10px] bg-secondary text-primary font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-foreground">{email || 'ID: ' + row.original.user_id?.slice(0, 8)}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                <Mail className="h-2.5 w-2.5" /> Corporativo
+              </span>
+            </div>
+          </div>
+        )
+      },
     },
     {
-      header: 'Rol',
+      header: 'Privilegios',
+      cell: ({ row }) => {
+        const isAdmin = row.original.role === 'admin'
+        return (
+          <div className="flex items-center gap-1.5">
+            {isAdmin ? (
+              <ShieldCheck className="h-3 w-3 text-primary" />
+            ) : (
+              <ShieldAlert className="h-3 w-3 text-muted-foreground" />
+            )}
+            <span className={isAdmin ? "text-primary text-[10px] font-bold uppercase" : "text-muted-foreground text-[10px] font-medium uppercase"}>
+              {row.original.role}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      header: 'Ubicación',
       cell: ({ row }) => (
-        <Badge variant={row.original.role === 'admin' ? 'default' : 'outline'}>
-          {row.original.role}
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <MapPin className="h-3 w-3" />
+          <span className="text-[10px] font-medium uppercase">{row.original.location?.name ?? 'Sede Central'}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Estado',
+      cell: () => (
+        <Badge variant="outline" className="text-[9px] uppercase tracking-widest border-primary/20 bg-primary/5 text-primary">
+          Activo
         </Badge>
       ),
     },
     {
-      header: 'Ubicación',
-      cell: ({ row }) => row.original.location?.name ?? '—',
-    },
-    {
-      header: 'Estado',
-      cell: () => <Badge variant="outline">Activo</Badge>,
-    },
-    {
       header: 'Acciones',
       cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => openEdit(row.original)}>
-            Editar
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-7 px-3 text-[10px] uppercase font-bold tracking-widest gap-1.5 hover:bg-primary/10 transition-all" onClick={() => openEdit(row.original)}>
+            <Pencil className="h-3 w-3" /> Editar
           </Button>
           <Button
-            variant="destructive"
+            variant="outline"
             size="sm"
+            className="h-7 px-3 text-[10px] uppercase font-bold tracking-widest text-destructive hover:bg-destructive/10 transition-all"
             disabled={deactivatingId === row.original.id}
             onClick={() => handleDeactivate(row.original)}
           >
-            Desactivar
+            Baja
           </Button>
         </div>
       ),
@@ -206,46 +244,50 @@ export default function WorkersPage() {
   ]
 
   return (
-    <div className="space-y-3">
-      <h1 className="text-lg font-semibold">Trabajadores</h1>
-      <DataTable
-        columns={columns}
-        data={workers}
-        toolbar={
-          <Button size="sm" onClick={openInvite}>
-            Invitar trabajador
-          </Button>
-        }
-      />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-heading font-bold tracking-tight">Trabajadores</h1>
+        <Button size="sm" className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={openInvite}>
+          <UserPlus size={14} /> Invitar Personal
+        </Button>
+      </div>
+
+      <div className="neon-card rounded-xl overflow-hidden">
+        <DataTable
+          columns={columns}
+          data={workers}
+        />
+      </div>
 
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md bg-card border-border/40">
           <DialogHeader>
-            <DialogTitle>Invitar trabajador</DialogTitle>
+            <DialogTitle className="font-heading font-bold text-lg">Invitar Personal</DialogTitle>
           </DialogHeader>
 
-          <form className="space-y-4" onSubmit={handleInvite}>
+          <form className="space-y-4 pt-4" onSubmit={handleInvite}>
             <div className="space-y-2">
-              <Label htmlFor="worker-email">Email</Label>
+              <Label htmlFor="worker-email" className="text-hud">Email Corporativo</Label>
               <Input
                 id="worker-email"
                 type="email"
                 value={inviteForm.email}
                 onChange={(event) => setInviteForm((current) => ({ ...current, email: event.target.value }))}
                 required
+                className="bg-background/50 border-border"
               />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Rol</Label>
+                <Label className="text-hud">Rol de Acceso</Label>
                 <Select
                   value={inviteForm.role}
                   onValueChange={(value) =>
                     setInviteForm((current) => ({ ...current, role: value as UserRole }))
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-background/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -256,13 +298,14 @@ export default function WorkersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Ubicación</Label>
+                <Label className="text-hud">Ubicación Asignada</Label>
                 <Select
                   value={inviteForm.location_id}
                   onValueChange={(value) => setInviteForm((current) => ({ ...current, location_id: value ?? '' }))}
+                  items={locations.map(l => ({ value: String(l.id), label: l.name }))}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona ubicación" />
+                  <SelectTrigger className="w-full bg-background/50 border-border">
+                    <SelectValue placeholder="Sede" />
                   </SelectTrigger>
                   <SelectContent>
                     {locations.map((location) => (
@@ -275,35 +318,35 @@ export default function WorkersPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest" onClick={() => setInviteOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={savingInvite || !inviteForm.location_id}>
-                {savingInvite ? 'Enviando...' : 'Enviar invitación'}
+              <Button type="submit" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon" disabled={savingInvite || !inviteForm.location_id}>
+                {savingInvite ? 'Enviando...' : 'Enviar Invitación'}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md bg-card border-border/40">
           <DialogHeader>
-            <DialogTitle>Editar trabajador</DialogTitle>
+            <DialogTitle className="font-heading font-bold text-lg">Modificar Privilegios</DialogTitle>
           </DialogHeader>
 
-          <form className="space-y-4" onSubmit={handleEdit}>
+          <form className="space-y-4 pt-4" onSubmit={handleEdit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Rol</Label>
+                <Label className="text-hud">Rol de Acceso</Label>
                 <Select
                   value={editForm.role}
                   onValueChange={(value) =>
                     setEditForm((current) => ({ ...current, role: value as UserRole }))
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-background/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -314,13 +357,14 @@ export default function WorkersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Ubicación</Label>
+                <Label className="text-hud">Ubicación Asignada</Label>
                 <Select
                   value={editForm.location_id}
                   onValueChange={(value) => setEditForm((current) => ({ ...current, location_id: value ?? '' }))}
+                  items={locations.map(l => ({ value: String(l.id), label: l.name }))}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona ubicación" />
+                  <SelectTrigger className="w-full bg-background/50 border-border">
+                    <SelectValue placeholder="Sede" />
                   </SelectTrigger>
                   <SelectContent>
                     {locations.map((location) => (
@@ -333,14 +377,14 @@ export default function WorkersPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest" onClick={() => setEditOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={savingEdit || !editForm.location_id}>
-                {savingEdit ? 'Guardando...' : 'Guardar cambios'}
+              <Button type="submit" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon" disabled={savingEdit || !editForm.location_id}>
+                {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

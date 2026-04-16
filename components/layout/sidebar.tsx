@@ -44,18 +44,36 @@ export function Sidebar() {
             href={item.href}
             onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false) }}
             className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+              'relative flex items-center gap-3 px-4 py-3 text-[10px] uppercase tracking-[0.2em] font-bold transition-all duration-300 group',
               isActive
-                ? 'bg-secondary text-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                ? 'text-primary bg-primary/5'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/20'
             )}
           >
-            <Icon size={18} className="flex-shrink-0" />
-            {sidebarOpen && <span>{item.label}</span>}
+            {/* Active Indicator Line */}
+            {isActive && (
+              <div className="absolute left-0 top-0 h-full w-[2px] bg-primary shadow-[0_0_10px_rgba(0,255,157,0.5)]" />
+            )}
+            
+            <Icon size={16} className={cn(
+              "flex-shrink-0 transition-transform group-hover:scale-110",
+              isActive ? "text-primary" : "text-muted-foreground/60"
+            )} />
+            
+            {sidebarOpen && (
+              <span className={cn(
+                "transition-opacity duration-300",
+                isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100"
+              )}>
+                {item.label}
+              </span>
+            )}
           </Link>
         </TooltipTrigger>
         {!sidebarOpen && (
-          <TooltipContent side="right"><p>{item.label}</p></TooltipContent>
+          <TooltipContent side="right" className="bg-popover border-border/40 text-[9px] uppercase tracking-widest font-bold">
+            {item.label}
+          </TooltipContent>
         )}
       </Tooltip>
     )
@@ -66,36 +84,82 @@ export function Sidebar() {
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-30 md:hidden"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-full bg-card border-r border-border flex flex-col z-40 transition-all duration-200',
-          sidebarOpen ? 'w-[180px]' : 'w-12',
-          // Mobile: hidden when closed
+          'fixed left-0 top-0 h-full bg-[#061614] border-r border-primary/5 flex flex-col z-40 transition-all duration-300 ease-in-out',
+          sidebarOpen ? 'w-[200px]' : 'w-14',
           !sidebarOpen && 'max-md:-translate-x-full'
         )}
       >
-        {/* Header */}
-        <div className={cn('flex items-center h-12 px-2 border-b border-border', sidebarOpen ? 'justify-between' : 'justify-center')}>
-          {sidebarOpen && <span className="font-bold text-primary text-sm ml-1">⚡ Vitalify</span>}
-          <button onClick={toggleSidebar} className="p-1.5 rounded-md hover:bg-secondary transition-colors">
-            {sidebarOpen ? <X size={16} className="text-muted-foreground" /> : <Menu size={16} className="text-muted-foreground" />}
+        {/* Header / Logo Section */}
+        <div className={cn(
+          'flex items-center h-16 px-4 mb-4 border-b border-white/5',
+          sidebarOpen ? 'justify-between' : 'justify-center'
+        )}>
+          {sidebarOpen && (
+            <div className="flex items-center gap-2 animate-in fade-in duration-500">
+              <div className="h-6 w-6 rounded-sm bg-primary flex items-center justify-center shadow-neon">
+                <span className="text-[10px] font-black text-black italic">V</span>
+              </div>
+              <span className="font-heading font-black text-xs uppercase tracking-[0.3em] text-foreground">
+                Vitalify
+              </span>
+            </div>
+          )}
+          <button 
+            onClick={toggleSidebar} 
+            className="p-1.5 rounded bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all group"
+          >
+            {sidebarOpen ? (
+              <X size={14} className="text-primary group-hover:rotate-90 transition-transform" />
+            ) : (
+              <div className="h-6 w-6 rounded-sm bg-primary/10 flex items-center justify-center">
+                <span className="text-[10px] font-black text-primary italic">V</span>
+              </div>
+            )}
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 py-3 px-1.5 space-y-0.5 overflow-y-auto">
+        {/* Navigation HUD */}
+        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
+          <div className="px-4 mb-2">
+            <p className={cn(
+              "text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40",
+              !sidebarOpen && "hidden"
+            )}>
+              Principales
+            </p>
+          </div>
           {generalItems.map(renderItem)}
+          
           {showAdmin && (
-            <>
-              <div className="my-2 mx-2 border-t border-border" />
+            <div className="mt-8">
+              <div className="px-4 mb-2">
+                <p className={cn(
+                  "text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40",
+                  !sidebarOpen && "hidden"
+                )}>
+                  Administración
+                </p>
+              </div>
               {adminItems.map(renderItem)}
-            </>
+            </div>
           )}
         </nav>
+
+        {/* Footer info */}
+        {sidebarOpen && (
+          <div className="p-4 border-t border-white/5 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary shadow-neon animate-pulse" />
+              <span className="text-[8px] font-bold uppercase tracking-widest text-primary/60">Servidor Activo</span>
+            </div>
+          </div>
+        )}
       </aside>
     </TooltipProvider>
   )

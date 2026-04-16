@@ -8,6 +8,7 @@ import { ShiftBlocker } from '@/components/layout/shift-blocker'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getActiveShift } from '@/lib/supabase/actions/shifts'
+import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [activeShift, setActiveShift] = useState<{ id: number; opened_at: string } | null>(null)
@@ -31,19 +32,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const showShiftBlocker = role === 'worker' && shiftChecked && !activeShift
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#03110f] text-[#ecfdf9]">
       <Sidebar />
-      <Topbar
-        hasActiveShift={!!activeShift}
-        activeShiftOpenedAt={activeShift?.opened_at}
-        onOpenDoor={handleOpenDoor}
-      />
-      <main
-        className="pt-12 min-h-screen transition-all duration-200 max-md:ml-0"
-        style={{ marginLeft: sidebarOpen ? 180 : 48 }}
+      
+      <div 
+        className={cn(
+          "min-h-screen transition-all duration-300 ease-in-out flex flex-col",
+          sidebarOpen ? "pl-[200px]" : "pl-14",
+          "max-md:pl-0"
+        )}
       >
-        <div className="p-4 md:p-6">{children}</div>
-      </main>
+        <Topbar
+          hasActiveShift={!!activeShift}
+          activeShiftOpenedAt={activeShift?.opened_at}
+          onOpenDoor={handleOpenDoor}
+        />
+        
+        <main className="flex-1 pt-16 pb-12">
+          {/* Asymmetric Breathing Room: 5% Right Margin */}
+          <div className="px-6 md:pr-[5%] lg:pr-[8%] max-w-[1600px]">
+            {children}
+          </div>
+        </main>
+      </div>
+
       {showShiftBlocker && (
         <ShiftBlocker
           locationId={selectedLocation!.location.id}

@@ -5,10 +5,21 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Camera, QrCode, RotateCcw } from 'lucide-react'
-import { add } from 'date-fns'
+import { Camera, QrCode, RotateCcw, Banknote, CreditCard, ArrowLeftRight } from 'lucide-react'
+import { add, format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 import Webcam from 'react-webcam'
 import { QRCodeSVG } from 'qrcode.react'
+
+const PAYMENT_METHODS = [
+  { value: 'cash', label: 'Efectivo', icon: Banknote },
+  { value: 'card', label: 'Tarjeta', icon: CreditCard },
+  { value: 'transfer', label: 'Transferencia', icon: ArrowLeftRight },
+]
+
+const fmtCurrency = (n: number) =>
+  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
 export interface PaymentData {
   plan_id: number
@@ -44,7 +55,6 @@ export function StepPlanPayment({ data, onChange, plans }: Props) {
   const webcamRef = useRef<Webcam>(null)
 
   const selectedPlan = plans.find(p => p.id === data.plan_id)
-  const price = selectedPlan?.price ?? 0
 
   const set = (partial: Partial<PaymentData>) => onChange({ ...data, ...partial })
 
@@ -77,30 +87,81 @@ export function StepPlanPayment({ data, onChange, plans }: Props) {
     ? `${window.location.origin}/api/receipt-upload?upload=true&token=${qrToken}`
     : ''
 
+  const nextEndDate = selectedPlan ? (() => {
+    const dur = selectedPlan.duration ?? ''
+    const num = parseInt(dur) || 1
+    const today = new Date()
+    if (dur.includes('year')) return add(today, { years: num })
+    if (dur.includes('mon')) return add(today, { months: num })
+    if (dur.includes('day')) return add(today, { days: num })
+    return add(today, { months: 1 })
+  })() : null
+
   return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <Label className="text-xs">Plan</Label>
-        <Select value={data.plan_id ? String(data.plan_id) : ''} onValueChange={v => handlePlanChange(Number(v))}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar plan" /></SelectTrigger>
-          <SelectContent>
-            {plans.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name} — ${p.price ?? 0}</SelectItem>)}
+    <div className="space-y-5">
+      {/* Plan selector */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground font-medium">Tipo de membresía</Label>
+        <Select
+          value={data.plan_id ? String(data.plan_id) : ''}
+          onValueChange={v => handlePlanChange(Number(v))}
+          items={plans.map(p => ({ value: String(p.id), label: p.name }))}
+        >
+          <SelectTrigger className="h-10 text-sm bg-background/50 border-border hover:border-primary/40 transition-colors">
+            <SelectValue placeholder="Seleccionar membresía" />
+          </SelectTrigger>
+          <SelectContent className="bg-card border-border">
+            {plans.map(p => (
+              <SelectItem key={p.id} value={String(p.id)} className="text-sm focus:bg-primary/10 focus:text-primary">
+                {p.name} — {fmtCurrency(p.price ?? 0)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-1">
-        <Label className="text-xs">Método de pago</Label>
-        <Select value={data.payment_method} onValueChange={v => set({ payment_method: v ?? '' })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="cash">Efectivo</SelectItem>
-            <SelectItem value="card">Tarjeta</SelectItem>
-            <SelectItem value="transfer">Transferencia</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Payment method tiles */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground font-medium">Forma de pago</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {PAYMENT_METHODS.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => set({ payment_method: value })}
+              className={cn(
+                'flex flex-col items-center gap-2 rounded-lg border p-3 text-xs font-medium transition-all',
+                data.payment_method === value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border/40 bg-background/30 text-muted-foreground hover:border-border hover:text-foreground'
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Summary */}
+      {selectedPlan && nextEndDate && (
+        <div className="rounded-lg border border-border/30 bg-secondary/20 divide-y divide-border/20 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-xs text-muted-foreground">Total a pagar</span>
+            <span className="text-lg font-bold text-primary font-mono">
+              {fmtCurrency(selectedPlan.price ?? 0)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-xs text-muted-foreground">Expiración</span>
+            <span className="text-xs font-semibold text-foreground font-mono uppercase">
+              {format(nextEndDate, 'dd MMM yyyy', { locale: es })}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt upload (transfer only) */}
       {data.payment_method === 'transfer' && (
         <div className="space-y-2">
           <Label className="text-xs">Comprobante de pago</Label>
@@ -136,16 +197,6 @@ export function StepPlanPayment({ data, onChange, plans }: Props) {
         </div>
       )}
 
-      {data.start_date && (
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div><span className="text-muted-foreground">Inicio:</span> {data.start_date}</div>
-          <div><span className="text-muted-foreground">Fin:</span> {data.end_date}</div>
-        </div>
-      )}
-
-      <div className="pt-2 border-t border-border">
-        <span className="text-sm font-bold">Total: ${price}</span>
-      </div>
     </div>
   )
 }

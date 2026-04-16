@@ -5,7 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-space-grotesk);
   --font-mono: var(--font-geist-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -13,8 +14,8 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: #00FF9D;
+  --color-primary-foreground: #00643a;
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -43,77 +44,60 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --shadow-neon: 0 0 15px rgba(0, 255, 157, 0.15);
 }
 
 :root {
-  --background: #041210;
-  --foreground: #FFFFFF;
-  --card: #0B221E;
-  --card-foreground: #FFFFFF;
-  --popover: #0C2B27;
-  --popover-foreground: #FFFFFF;
+  --background: #03110f;
+  --foreground: #ecfdf9;
+  --card: #0a1d1a;
+  --card-foreground: #ecfdf9;
+  --popover: #0a1d1a;
+  --popover-foreground: #ecfdf9;
   --primary: #00FF9D;
-  --primary-foreground: #041210;
-  --secondary: #1A3835;
-  --secondary-foreground: #FFFFFF;
-  --muted: #1A3835;
-  --muted-foreground: #8E9B99;
-  --accent: #00FF9D;
-  --accent-foreground: #041210;
-  --destructive: #FF453A;
-  --destructive-foreground: #FFFFFF;
-  --border: #1A3835;
-  --input: #0C2B27;
-  --ring: #00FF9D;
-  --chart-1: #00FF9D;
-  --chart-2: #FF9F0A;
-  --chart-3: #64D2FF;
-  --chart-4: #BF5AF2;
-  --chart-5: #FF375F;
-  --radius: 0.625rem;
-  --sidebar: #0B221E;
-  --sidebar-foreground: #FFFFFF;
+  --primary-foreground: #00643a;
+  --secondary: #142926;
+  --secondary-foreground: #ecfdf9;
+  --muted: #0f2320;
+  --muted-foreground: #9eafab;
+  --accent: #19302d;
+  --accent-foreground: #ecfdf9;
+  --destructive: #ff716c;
+  --destructive-foreground: #490006;
+  --border: #3c4b48;
+  --input: #3c4b48;
+  --ring: #a0ffc3;
+  --radius: 0.5rem;
+  --sidebar: #061614;
+  --sidebar-foreground: #ecfdf9;
   --sidebar-primary: #00FF9D;
-  --sidebar-primary-foreground: #041210;
-  --sidebar-accent: #1A3835;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #1A3835;
-  --sidebar-ring: #00FF9D;
+  --sidebar-primary-foreground: #00643a;
+  --sidebar-accent: #142926;
+  --sidebar-accent-foreground: #ecfdf9;
+  --sidebar-border: #3c4b48;
+  --sidebar-ring: #a0ffc3;
 }
 
 .dark {
-  --background: #041210;
-  --foreground: #FFFFFF;
-  --card: #0B221E;
-  --card-foreground: #FFFFFF;
-  --popover: #0C2B27;
-  --popover-foreground: #FFFFFF;
+  --background: #03110f;
+  --foreground: #ecfdf9;
+  --card: #0a1d1a;
+  --card-foreground: #ecfdf9;
+  --popover: #0a1d1a;
+  --popover-foreground: #ecfdf9;
   --primary: #00FF9D;
-  --primary-foreground: #041210;
-  --secondary: #1A3835;
-  --secondary-foreground: #FFFFFF;
-  --muted: #1A3835;
-  --muted-foreground: #8E9B99;
-  --accent: #00FF9D;
-  --accent-foreground: #041210;
-  --destructive: #FF453A;
-  --destructive-foreground: #FFFFFF;
-  --border: #1A3835;
-  --input: #0C2B27;
-  --ring: #00FF9D;
-  --chart-1: #00FF9D;
-  --chart-2: #FF9F0A;
-  --chart-3: #64D2FF;
-  --chart-4: #BF5AF2;
-  --chart-5: #FF375F;
-  --sidebar: #0B221E;
-  --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #00FF9D;
-  --sidebar-primary-foreground: #041210;
-  --sidebar-accent: #1A3835;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #1A3835;
-  --sidebar-ring: #00FF9D;
+  --primary-foreground: #00643a;
+  --secondary: #142926;
+  --secondary-foreground: #ecfdf9;
+  --muted: #0f2320;
+  --muted-foreground: #9eafab;
+  --accent: #19302d;
+  --accent-foreground: #ecfdf9;
+  --destructive: #ff716c;
+  --destructive-foreground: #490006;
+  --border: #3c4b48;
+  --input: #3c4b48;
+  --ring: #a0ffc3;
 }
 
 @layer base {
@@ -122,5 +106,21 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .neon-card {
+    background: rgba(10, 29, 26, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 255, 157, 0.1);
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.05);
+  }
+  
+  .text-hud {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
   }
 }

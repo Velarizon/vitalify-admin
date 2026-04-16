@@ -88,7 +88,11 @@ export function CreateClientSheet({ open, onClose, plans }: Props) {
             <>
               <div className="space-y-1">
                 <Label className="text-xs">Plan</Label>
-                <Select value={String(step3.plan_id)} onValueChange={v => setStep3(p => ({ ...p, plan_id: Number(v) }))}>
+                <Select
+                  value={String(step3.plan_id)}
+                  onValueChange={v => setStep3(p => ({ ...p, plan_id: Number(v) }))}
+                  items={plans.map(p => ({ value: String(p.id), label: p.name }))}
+                >
                   <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Seleccionar plan" /></SelectTrigger>
                   <SelectContent>
                     {plans.map(plan => <SelectItem key={plan.id} value={String(plan.id)}>{plan.name}</SelectItem>)}

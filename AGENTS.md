@@ -267,25 +267,25 @@ Mismo proyecto Supabase que `kraken-web`. La migración en T05 agrega la tabla `
 | ID | Rama | Título | Dependencias | Status | Agent |
 |---|---|---|---|---|---|
 | T18 | `task/T18-neon-dark-theme` | Neon Dark Theme (globals.css + layout.tsx) | — | `completed` | Gemini CLI |
-| T19 | `task/T19-terminal-rewrite` | Terminal Class Rewrite | — | `pending` | Codex |
-| T20 | `task/T20-plans-migration` | Plans Migration + Action | — | `pending` | Codex |
-| T21 | `task/T21-datatable-pagination` | DataTable Pagination | — | `pending` | Claude |
+| T19 | `task/T19-terminal-rewrite` | Terminal Class Rewrite | — | `completed` | Codex |
+| T20 | `task/T20-plans-migration` | Plans Migration + Action | — | `completed` | Codex |
+| T21 | `task/T21-datatable-pagination` | DataTable Pagination | — | `completed` | Claude |
 | T22 | `task/T22-sidebar-store` | Sidebar Preferences Store | — | `completed` | Claude |
 | T23 | `task/T23-sidebar-redesign` | Sidebar Redesign | T18, T22 | `completed` | Gemini CLI |
 | T24 | `task/T24-topbar-redesign` | Topbar Redesign | T18 | `completed` | Gemini CLI |
 | T25 | `task/T25-dashboard-layout` | Dashboard Layout Update | T18 | `completed` | Gemini CLI |
-| T26 | `task/T26-plans-crud` | Plans CRUD Page | T20 | `pending` | Codex |
-| T27 | `task/T27-locations-crud` | Locations CRUD Page | — | `pending` | Codex |
-| T28 | `task/T28-workers-crud` | Workers CRUD Page | — | `pending` | Codex |
-| T29 | `task/T29-terminal-config` | Terminal Config Page | T19 | `pending` | Codex |
+| T26 | `task/T26-plans-crud` | Plans CRUD Page | T20 | `completed` | Codex |
+| T27 | `task/T27-locations-crud` | Locations CRUD Page | — | `completed` | Codex |
+| T28 | `task/T28-workers-crud` | Workers CRUD Page | — | `completed` | Codex |
+| T29 | `task/T29-terminal-config` | Terminal Config Page | T19 | `completed` | Codex |
 | T30 | `task/T30-remove-emerald` | Remove Emerald Hardcodes | T18 | `completed` | Gemini CLI |
-| T31 | `task/T31-install-deps` | Install Dependencies (wizard) | — | `pending` | Claude |
-| T32 | `task/T32-wizard-stepper` | Wizard Stepper | T31 | `pending` | Claude |
-| T33 | `task/T33-step-personal` | Step 1 Personal | T32 | `pending` | Claude |
-| T34 | `task/T34-step-biometrics` | Step 2 Biometrics | T32 | `pending` | Claude |
-| T35 | `task/T35-step-payment` | Step 3 Plan/Payment | T32 | `pending` | Claude |
-| T36 | `task/T36-wizard-submission` | Wizard + Submission | T33, T34, T35 | `pending` | Claude |
-| T37 | `task/T37-monthly-reports` | Monthly Reports (v2) | — | `pending` | Codex |
+| T31 | `task/T31-install-deps` | Install Dependencies (wizard) | — | `completed` | Claude |
+| T32 | `task/T32-wizard-stepper` | Wizard Stepper | T31 | `completed` | Claude |
+| T33 | `task/T33-step-personal` | Step 1 Personal | T32 | `completed` | Claude |
+| T34 | `task/T34-step-biometrics` | Step 2 Biometrics | T32 | `completed` | Claude |
+| T35 | `task/T35-step-payment` | Step 3 Plan/Payment | T32 | `completed` | Claude |
+| T36 | `task/T36-wizard-submission` | Wizard + Submission | T33, T34, T35 | `completed` | Claude |
+| T37 | `task/T37-monthly-reports` | Monthly Reports (v2) | — | `completed` | Codex |
 | T38 | `task/T38-login-neon` | Login Page Neon Dark | T18 | `completed` | Gemini CLI |
 
 ### Phase 6: UX/UI & Actions (v2)

@@ -1,10 +1,10 @@
+// app/(dashboard)/plans/page.tsx
 'use client'
 
 import { type FormEvent, useEffect, useState } from 'react'
-import { ColumnDef } from '@tanstack/react-table'
-import { DataTable } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -12,6 +12,8 @@ import { Switch } from '@/components/ui/switch'
 import { getPlans, togglePlanActive, upsertPlan } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
+import { Plus, Pencil, Clock, CreditCard, ShieldCheck, ShieldAlert, Zap } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type Plan = Awaited<ReturnType<typeof getPlans>>[number] & {
   is_active?: boolean | null
@@ -128,82 +130,121 @@ export default function PlansPage() {
     }
   }
 
-  const columns: ColumnDef<Plan>[] = [
-    { accessorKey: 'name', header: 'Nombre' },
-    { accessorKey: 'duration', header: 'Duración' },
-    {
-      accessorKey: 'price',
-      header: 'Precio',
-      cell: ({ row }) =>
-        row.original.price != null
-          ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(row.original.price)
-          : '—',
-    },
-    { accessorKey: 'access_level', header: 'Acceso' },
-    {
-      header: 'Estado',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={row.original.is_active ?? true}
-            disabled={togglingId === row.original.id}
-            onCheckedChange={(checked) => handleToggle(row.original, checked)}
-          />
-          <span className="text-xs text-muted-foreground">
-            {(row.original.is_active ?? true) ? 'Activo' : 'Inactivo'}
-          </span>
-        </div>
-      ),
-    },
-    {
-      header: 'Acciones',
-      cell: ({ row }) => (
-        <Button variant="outline" size="sm" onClick={() => openEdit(row.original)}>
-          Editar
-        </Button>
-      ),
-    },
-  ]
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
   return (
-    <div className="space-y-3">
-      <h1 className="text-lg font-semibold">Planes</h1>
-      <DataTable
-        columns={columns}
-        data={plans}
-        searchPlaceholder="Buscar plan..."
-        toolbar={
-          <Button size="sm" onClick={openCreate}>
-            Nuevo plan
-          </Button>
-        }
-      />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-xl font-heading font-bold tracking-tight">Catálogo de Planes</h1>
+          <p className="text-hud tracking-widest uppercase">Estrategia de Membresías</p>
+        </div>
+        <Button size="sm" className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={openCreate}>
+          <Plus size={14} /> Nuevo Plan
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {plans.map((plan) => (
+          <Card key={plan.id} className={cn(
+            "neon-card overflow-hidden group transition-all duration-300",
+            (plan.is_active ?? true) ? "hover:border-primary/40" : "opacity-60 border-destructive/20"
+          )}>
+            <CardContent className="p-0">
+              <div className="p-6 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Zap className={cn("h-3.5 w-3.5", (plan.is_active ?? true) ? "text-primary" : "text-muted-foreground")} />
+                      <h3 className="text-lg font-bold font-heading uppercase italic tracking-tighter">
+                        {plan.name}
+                      </h3>
+                    </div>
+                    <p className="text-hud text-[9px] uppercase tracking-[0.2em]">{plan.duration as string}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold font-heading text-primary group-hover:drop-shadow-[0_0_8px_rgba(0,255,157,0.3)] transition-all">
+                      {fmt(plan.price ?? 0)}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Pago único</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 py-3 border-y border-border/20">
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                      <ShieldCheck className="h-2.5 w-2.5" /> Acceso
+                    </p>
+                    <p className="text-[10px] font-bold uppercase text-foreground">
+                      {plan.access_level === 'full' ? 'Completo' : 'Limitado'}
+                    </p>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest flex items-center justify-end gap-1">
+                      <Clock className="h-2.5 w-2.5" /> Horario
+                    </p>
+                    <p className="text-[10px] font-bold uppercase text-foreground font-mono">
+                      {plan.access_level === 'full' ? '24/7' : `${plan.access_start_time?.slice(0, 5)} - ${plan.access_end_time?.slice(0, 5)}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={plan.is_active ?? true}
+                      disabled={togglingId === plan.id}
+                      onCheckedChange={(checked) => handleToggle(plan, checked)}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {(plan.is_active ?? true) ? 'Visible' : 'Oculto'}
+                    </span>
+                  </div>
+                  <Button variant="outline" size="sm" className="h-7 px-3 text-[10px] uppercase font-bold tracking-widest gap-1.5 hover:bg-primary/10 transition-all" onClick={() => openEdit(plan)}>
+                    <Pencil className="h-3 w-3" /> Editar
+                  </Button>
+                </div>
+              </div>
+              {/* Plan decorative bar */}
+              <div className={cn(
+                "h-1 w-full",
+                (plan.is_active ?? true) ? "bg-primary/40 group-hover:bg-primary transition-colors" : "bg-destructive/40"
+              )} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg bg-card border-border/40">
           <DialogHeader>
-            <DialogTitle>{form.id ? 'Editar plan' : 'Nuevo plan'}</DialogTitle>
+            <DialogTitle className="font-heading font-bold text-lg uppercase tracking-tight">
+              {form.id ? 'Modificar Plan' : 'Configurar Nuevo Plan'}
+            </DialogTitle>
           </DialogHeader>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4 pt-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="plan-name">Nombre</Label>
+              <Label htmlFor="plan-name" className="text-hud">Nombre Comercial</Label>
               <Input
                 id="plan-name"
                 value={form.name}
                 onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                 required
+                className="bg-background/50 border-border"
               />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Duración</Label>
+                <Label className="text-hud">Ciclo de Renovación</Label>
                 <Select
                   value={form.duration}
                   onValueChange={(value) => setForm((current) => ({ ...current, duration: value ?? '' }))}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-background/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -217,21 +258,25 @@ export default function PlansPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="plan-price">Precio</Label>
-                <Input
-                  id="plan-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.price}
-                  onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
-                  required
-                />
+                <Label htmlFor="plan-price" className="text-hud">Costo (MXN)</Label>
+                <div className="relative">
+                  <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="plan-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.price}
+                    onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
+                    required
+                    className="pl-9 bg-background/50 border-border"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Nivel de acceso</Label>
+              <Label className="text-hud">Protocolo de Acceso</Label>
               <Select
                 value={form.access_level}
                 onValueChange={(value) =>
@@ -243,20 +288,20 @@ export default function PlansPage() {
                   }))
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-background/50 border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="full">Completo</SelectItem>
-                  <SelectItem value="limited">Limitado</SelectItem>
+                  <SelectItem value="full">Libre (24/7)</SelectItem>
+                  <SelectItem value="limited">Restringido (Horario)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {form.access_level === 'limited' && (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 animate-in slide-in-from-top-2 duration-200">
                 <div className="space-y-2">
-                  <Label htmlFor="plan-start-time">Hora inicio</Label>
+                  <Label htmlFor="plan-start-time" className="text-hud">Apertura</Label>
                   <Input
                     id="plan-start-time"
                     type="time"
@@ -265,11 +310,12 @@ export default function PlansPage() {
                       setForm((current) => ({ ...current, access_start_time: event.target.value }))
                     }
                     required
+                    className="bg-background/50 border-border"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="plan-end-time">Hora fin</Label>
+                  <Label htmlFor="plan-end-time" className="text-hud">Cierre</Label>
                   <Input
                     id="plan-end-time"
                     type="time"
@@ -278,19 +324,20 @@ export default function PlansPage() {
                       setForm((current) => ({ ...current, access_end_time: event.target.value }))
                     }
                     required
+                    className="bg-background/50 border-border"
                   />
                 </div>
               </div>
             )}
 
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancelar
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest" onClick={() => setDialogOpen(false)}>
+                Descartar
               </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Guardando...' : form.id ? 'Guardar cambios' : 'Crear plan'}
+              <Button type="submit" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon" disabled={saving}>
+                {saving ? 'Procesando...' : form.id ? 'Guardar Cambios' : 'Confirmar Plan'}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

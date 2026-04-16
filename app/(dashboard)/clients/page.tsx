@@ -10,33 +10,42 @@ import { Button } from '@/components/ui/button'
 import { getClients } from '@/lib/supabase/actions/clients'
 import { getActivePlans } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, MoreHorizontal, Pencil, RefreshCw } from 'lucide-react'
+import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Target, Shield } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { MetricCard } from '@/components/shared/metric-card'
 
 type Client = Awaited<ReturnType<typeof getClients>>[number]
 
 function statusBadge(client: Client) {
   const sub = client.subscriptions?.[0]
-  if (!sub) return <Badge variant="outline" className="text-[#FF9F0A]">Baja</Badge>
+  if (!sub) return (
+    <div className="flex items-center gap-1.5 text-[#FF9F0A]">
+      <UserX className="h-3 w-3" />
+      <span className="text-[9px] uppercase font-black tracking-widest">Baja</span>
+    </div>
+  )
   const expired = new Date() > new Date(sub.end_date ?? 0)
   return expired
-    ? <Badge variant="destructive">Vencido</Badge>
-    : <Badge className="bg-primary">Vigente</Badge>
+    ? (
+      <div className="flex items-center gap-1.5 text-destructive">
+        <AlertCircle className="h-3 w-3" />
+        <span className="text-[9px] uppercase font-black tracking-widest">Vencido</span>
+      </div>
+    )
+    : (
+      <div className="flex items-center gap-1.5 text-primary">
+        <UserCheck className="h-3 w-3" />
+        <span className="text-[9px] uppercase font-black tracking-widest">Vigente</span>
+      </div>
+    )
 }
 
 export default function ClientsPage() {
   const { userData } = useAuthStore()
+  const { selectedLocation } = usePreferencesStore()
   const [clients, setClients] = useState<Client[]>([])
   const [plans, setPlans] = useState<{ id: number; name: string; price: number | null; duration: string | null }[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,79 +71,131 @@ export default function ClientsPage() {
 
   useEffect(() => { load() }, [userData])
 
+  const stats = {
+    total: clients.length,
+    active: clients.filter(c => {
+      const sub = c.subscriptions?.[0]
+      return sub && new Date() <= new Date(sub.end_date ?? 0)
+    }).length,
+    expired: clients.filter(c => {
+      const sub = c.subscriptions?.[0]
+      return sub && new Date() > new Date(sub.end_date ?? 0)
+    }).length
+  }
+
   const columns: ColumnDef<Client>[] = [
     {
-      header: 'Estado',
+      header: 'Estado de Enlace',
       cell: ({ row }) => statusBadge(row.original),
     },
     {
-      header: 'Foto',
+      header: 'Identidad Miembro',
       cell: ({ row }) => (
-        <Avatar className="h-6 w-6">
-          <AvatarImage src={row.original.image_url ?? ''} />
-          <AvatarFallback className="text-xs">
-            {row.original.name?.[0]}{row.original.last_name?.[0]}
-          </AvatarFallback>
-        </Avatar>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-9 w-9 border border-white/5 ring-1 ring-white/5 group-hover:ring-primary/20 transition-all duration-300">
+            <AvatarImage src={row.original.image_url ?? ''} className="object-cover" />
+            <AvatarFallback className="text-[10px] bg-secondary/50 text-primary font-black">
+              {row.original.name?.[0]}{row.original.last_name?.[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-xs font-black uppercase tracking-tight text-foreground/90">{row.original.name} {row.original.last_name}</span>
+            <span className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-mono italic">
+              {row.original.email || 'NO_IDENTIFIER_SEC'}
+            </span>
+          </div>
+        </div>
       ),
     },
-    { accessorKey: 'name', header: 'Nombre' },
-    { accessorKey: 'last_name', header: 'Apellido' },
     {
-      header: 'Plan',
-      cell: ({ row }) => (row.original.subscriptions as any)?.[0]?.plans?.name ?? '—',
+      header: 'Protocolo Plan',
+      cell: ({ row }) => {
+        const planName = (row.original.subscriptions as any)?.[0]?.plans?.name
+        return (
+          <div className="flex items-center gap-2">
+            <Shield className="h-3 w-3 text-primary/40" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">
+              {planName ?? 'SIN_PLAN_ASIGNADO'}
+            </span>
+          </div>
+        )
+      },
     },
-    { accessorKey: 'email', header: 'Email' },
     {
-      header: 'Edad',
-      cell: ({ row }) => row.original.date_of_birth
-        ? new Date().getFullYear() - new Date(row.original.date_of_birth).getFullYear()
-        : '—',
+      header: 'Vencimiento',
+      cell: ({ row }) => {
+        const endDate = (row.original.subscriptions as any)?.[0]?.end_date
+        return (
+          <span className="text-[10px] font-mono text-muted-foreground/80 tracking-tighter bg-secondary/30 px-2 py-0.5 rounded-sm">
+            {endDate ? new Date(endDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : 'N/A'}
+          </span>
+        )
+      },
     },
     {
       id: 'actions',
       cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-6 w-6 p-0">
-              <span className="sr-only">Abrir menú</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[160px]">
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Acciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => setEditingClient(row.original)}
-              className="text-xs gap-2"
-            >
-              <Pencil className="h-3 w-3" /> Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => setRenewingClient(row.original)}
-              className="text-xs gap-2"
-            >
-              <RefreshCw className="h-3 w-3" /> Renovar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 px-3 text-[9px] uppercase font-black tracking-[0.15em] gap-1.5 border-white/5 bg-secondary/20 hover:bg-primary/10 hover:text-primary transition-all"
+            onClick={() => setEditingClient(row.original)}
+          >
+            <Pencil className="h-2.5 w-2.5" /> Editar
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 px-3 text-[9px] uppercase font-black tracking-[0.15em] gap-1.5 border-white/5 bg-secondary/20 hover:bg-primary/10 hover:text-primary transition-all"
+            onClick={() => setRenewingClient(row.original)}
+          >
+            <RefreshCw className="h-2.5 w-2.5" /> Renovar
+          </Button>
+        </div>
       ),
     },
   ]
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Clientes</h1>
-        <Button size="sm" className="h-7 text-xs gap-1" onClick={() => setShowCreate(true)}>
-          <Plus size={13} /> Nuevo cliente
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* HUD Header */}
+      <div className="flex items-end justify-between border-b border-white/5 pb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <h1 className="text-2xl font-heading font-black uppercase italic tracking-tighter">Terminal Miembros</h1>
+          </div>
+          <p className="text-hud tracking-[0.3em]">Gestión de Acceso y Membresías v2.4</p>
+        </div>
+        <Button 
+          size="sm" 
+          className="h-10 px-6 text-[10px] uppercase font-black tracking-[0.2em] gap-2 bg-primary text-black hover:bg-primary/90 shadow-neon italic"
+          onClick={() => setShowCreate(true)}
+        >
+          <Plus size={14} className="stroke-[3px]" /> Registrar Nuevo Miembro
         </Button>
       </div>
+
+      {/* Top Metrics Area */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <MetricCard title="Total Registrados" value={stats.total} subtitle="Base de datos global" />
+        <MetricCard title="Enlaces Activos" value={stats.active} className="border-primary/20" />
+        <MetricCard title="Vencimientos" value={stats.expired} className="border-destructive/20" />
+      </div>
+      
       {loading ? (
         <TableSkeleton />
       ) : (
-        <DataTable columns={columns} data={clients} searchPlaceholder="Buscar cliente..." />
+        <div className="space-y-4">
+          <DataTable 
+            columns={columns} 
+            data={clients} 
+            searchPlaceholder="Ej: ID_001 o NOMBRE..." 
+          />
+        </div>
       )}
+
       <CreateClientWizard
         open={showCreate}
         onClose={() => { setShowCreate(false); load() }}
@@ -155,3 +216,5 @@ export default function ClientsPage() {
     </div>
   )
 }
+
+import { usePreferencesStore } from '@/stores/preferences'
