@@ -1,18 +1,18 @@
 // app/(dashboard)/shifts/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getShifts, openShift, getActiveShift } from '@/lib/supabase/actions/shifts'
-import { useAuthStore } from '@/stores/auth'
+import { getShiftsPage, openShift, getActiveShift } from '@/lib/supabase/actions/shifts'
 import { usePreferencesStore } from '@/stores/preferences'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 
-type Shift = Awaited<ReturnType<typeof getShifts>>[number]
+type Shift = Awaited<ReturnType<typeof getShiftsPage>>['data'][number]
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
@@ -37,21 +37,37 @@ const columns: ColumnDef<Shift>[] = [
 ]
 
 export default function ShiftsPage() {
-  const { role } = useAuthStore()
   const { selectedLocation } = usePreferencesStore()
   const [shifts, setShifts] = useState<Shift[]>([])
   const [hasActive, setHasActive] = useState(false)
   const [opening, setOpening] = useState(false)
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const [totalRows, setTotalRows] = useState(0)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!selectedLocation) return
-    const data = await getShifts(selectedLocation.location.id)
-    setShifts(data)
+    const result = await getShiftsPage(selectedLocation.location.id, {
+      page: pageIndex + 1,
+      pageSize,
+      search: debouncedSearch,
+    })
+    setShifts(result.data)
+    setTotalRows(result.count)
     const active = await getActiveShift(selectedLocation.location.id)
     setHasActive(!!active)
-  }
+  }, [debouncedSearch, pageIndex, pageSize, selectedLocation])
 
-  useEffect(() => { load() }, [selectedLocation])
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void load()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [load])
+
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
 
   const handleOpen = async () => {
     if (!selectedLocation) return
@@ -74,7 +90,29 @@ export default function ShiftsPage() {
         )}
         {hasActive && <Badge className="bg-primary">Turno activo</Badge>}
       </div>
-      <DataTable columns={columns} data={shifts} />
+      <DataTable
+        columns={columns}
+        data={shifts}
+        searchPlaceholder="Buscar turno..."
+        pagination={{
+          pageIndex,
+          pageSize,
+          pageCount,
+          totalRows,
+          onPageChange: (nextPageIndex) => setPageIndex(Math.max(0, Math.min(nextPageIndex, pageCount - 1))),
+          onPageSizeChange: (nextPageSize) => {
+            setPageIndex(0)
+            setPageSize(nextPageSize)
+          },
+        }}
+        search={{
+          value: search,
+          onChange: (value) => {
+            setPageIndex(0)
+            setSearch(value)
+          },
+        }}
+      />
     </div>
   )
 }

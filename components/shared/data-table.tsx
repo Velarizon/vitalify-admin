@@ -11,32 +11,63 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useState } from 'react'
 
+interface ManualPaginationState {
+  pageIndex: number
+  pageSize: number
+  pageCount: number
+  totalRows: number
+  onPageChange: (pageIndex: number) => void
+  onPageSizeChange: (pageSize: number) => void
+}
+
+interface SearchState {
+  value: string
+  onChange: (value: string) => void
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   searchPlaceholder?: string
   toolbar?: React.ReactNode
+  pagination?: ManualPaginationState
+  search?: SearchState
 }
 
 export function DataTable<TData, TValue>({
-  columns, data, searchPlaceholder = 'Buscar...', toolbar,
+  columns, data, searchPlaceholder = 'Buscar...', toolbar, pagination, search,
 }: DataTableProps<TData, TValue>) {
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [pageSize, setPageSize] = useState(50)
+  const [localGlobalFilter, setLocalGlobalFilter] = useState('')
+  const [localPageSize, setLocalPageSize] = useState(50)
+  const isManualPagination = !!pagination
+  const globalFilter = search?.value ?? localGlobalFilter
 
   const table = useReactTable({
     data, columns,
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
+    state: {
+      globalFilter,
+      pagination: isManualPagination
+        ? { pageIndex: pagination.pageIndex, pageSize: pagination.pageSize }
+        : undefined,
+    },
+    onGlobalFilterChange: search?.onChange ?? setLocalGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
+    ...(isManualPagination
+      ? {
+          manualPagination: true,
+          pageCount: pagination.pageCount,
+          onPaginationChange: () => undefined,
+        }
+      : {
+          getFilteredRowModel: getFilteredRowModel(),
+          getPaginationRowModel: getPaginationRowModel(),
+          initialState: { pagination: { pageSize: localPageSize } },
+        }),
   })
 
-  const totalRows = table.getFilteredRowModel().rows.length
-  const pageIndex = table.getState().pagination.pageIndex
-  const currentPageSize = table.getState().pagination.pageSize
+  const totalRows = isManualPagination ? pagination.totalRows : table.getFilteredRowModel().rows.length
+  const pageIndex = isManualPagination ? pagination.pageIndex : table.getState().pagination.pageIndex
+  const currentPageSize = isManualPagination ? pagination.pageSize : table.getState().pagination.pageSize
   const start = pageIndex * currentPageSize + 1
   const end = Math.min((pageIndex + 1) * currentPageSize, totalRows)
 
@@ -46,7 +77,7 @@ export function DataTable<TData, TValue>({
         <Input
           placeholder={searchPlaceholder}
           value={globalFilter}
-          onChange={e => setGlobalFilter(e.target.value)}
+          onChange={e => (search?.onChange ?? setLocalGlobalFilter)(e.target.value)}
           className="h-8 w-56 text-xs"
         />
         {toolbar}
@@ -92,7 +123,15 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center gap-2">
           <Select
             value={String(currentPageSize)}
-            onValueChange={v => { setPageSize(Number(v)); table.setPageSize(Number(v)) }}
+            onValueChange={(v) => {
+              const nextPageSize = Number(v)
+              if (isManualPagination) {
+                pagination.onPageSizeChange(nextPageSize)
+                return
+              }
+              setLocalPageSize(nextPageSize)
+              table.setPageSize(nextPageSize)
+            }}
           >
             <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -102,11 +141,13 @@ export function DataTable<TData, TValue>({
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" className="h-7 text-xs px-2"
-            onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            onClick={() => (isManualPagination ? pagination.onPageChange(pageIndex - 1) : table.previousPage())}
+            disabled={!table.getCanPreviousPage()}>
             Anterior
           </Button>
           <Button variant="outline" size="sm" className="h-7 text-xs px-2"
-            onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            onClick={() => (isManualPagination ? pagination.onPageChange(pageIndex + 1) : table.nextPage())}
+            disabled={!table.getCanNextPage()}>
             Siguiente
           </Button>
         </div>

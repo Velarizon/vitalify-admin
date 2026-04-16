@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { computeShiftTotals } from '@/lib/shifts'
+import { escapeForLike, normalizePagination, type PaginatedResult, type PaginationParams } from '@/lib/supabase/actions/pagination'
 
 export async function getActiveShift(locationId: number) {
   const supabase = await createClient()
@@ -77,6 +78,46 @@ export async function getShifts(locationId: number, userId?: string) {
   const { data, error } = await query
   if (error) throw new Error(error.message)
   return data ?? []
+}
+
+export async function getShiftsPage(
+  locationId: number,
+  params?: PaginationParams & { userId?: string }
+): Promise<PaginatedResult<Awaited<ReturnType<typeof getShifts>>[number]>> {
+  const supabase = await createClient()
+  const { page, pageSize, search, from, to } = normalizePagination(params)
+
+  let query = supabase
+    .from('shifts')
+    .select('*', { count: 'exact' })
+    .eq('location_id', locationId)
+    .order('opened_at', { ascending: false })
+
+  if (params?.userId) {
+    query = query.eq('opened_by', params.userId)
+  }
+
+  if (search) {
+    const value = escapeForLike(search)
+    const numericSearch = Number(search)
+    const filters = [`notes.ilike.%${value}%`, `opened_by.ilike.%${value}%`]
+
+    if (Number.isFinite(numericSearch)) {
+      filters.push(`id.eq.${numericSearch}`)
+    }
+
+    query = query.or(filters.join(','))
+  }
+
+  const { data, error, count } = await query.range(from, to)
+  if (error) throw new Error(error.message)
+
+  return {
+    data: data ?? [],
+    count: count ?? 0,
+    page,
+    pageSize,
+  }
 }
 
 export async function getShiftDetail(shiftId: number) {

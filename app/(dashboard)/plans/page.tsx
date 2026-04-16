@@ -1,6 +1,6 @@
 'use client'
 
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
@@ -9,11 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { getPlans, togglePlanActive, upsertPlan } from '@/lib/supabase/actions/plans'
+import { getPlansPage, togglePlanActive, upsertPlan } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { TableSkeleton } from '@/components/shared/table-skeleton'
 
-type Plan = Awaited<ReturnType<typeof getPlans>>[number] & {
+type Plan = Awaited<ReturnType<typeof getPlansPage>>['data'][number] & {
   is_active?: boolean | null
 }
 
@@ -52,20 +54,39 @@ export default function PlansPage() {
   const [form, setForm] = useState<PlanForm>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const [totalRows, setTotalRows] = useState(0)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     if (!userData) return
+    setLoading(true)
     try {
-      const data = await getPlans(userData.company.id)
-      setPlans((data as Plan[]) ?? [])
+      const result = await getPlansPage(userData.company.id, {
+        page: pageIndex + 1,
+        pageSize,
+        search: debouncedSearch,
+      })
+      setPlans((result.data as Plan[]) ?? [])
+      setTotalRows(result.count)
     } catch (error) {
       toast.error((error as Error).message)
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [debouncedSearch, pageIndex, pageSize, userData])
 
   useEffect(() => {
-    loadPlans()
-  }, [userData])
+    const timeoutId = window.setTimeout(() => {
+      void loadPlans()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadPlans])
+
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
 
   const openCreate = () => {
     setForm(emptyForm)
@@ -168,16 +189,38 @@ export default function PlansPage() {
   return (
     <div className="space-y-3">
       <h1 className="text-lg font-semibold">Planes</h1>
-      <DataTable
-        columns={columns}
-        data={plans}
-        searchPlaceholder="Buscar plan..."
-        toolbar={
-          <Button size="sm" onClick={openCreate}>
-            Nuevo plan
-          </Button>
-        }
-      />
+      {loading ? (
+        <TableSkeleton />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={plans}
+          searchPlaceholder="Buscar plan..."
+          pagination={{
+            pageIndex,
+            pageSize,
+            pageCount,
+            totalRows,
+            onPageChange: (nextPageIndex) => setPageIndex(Math.max(0, Math.min(nextPageIndex, pageCount - 1))),
+            onPageSizeChange: (nextPageSize) => {
+              setPageIndex(0)
+              setPageSize(nextPageSize)
+            },
+          }}
+          search={{
+            value: search,
+            onChange: (value) => {
+              setPageIndex(0)
+              setSearch(value)
+            },
+          }}
+          toolbar={
+            <Button size="sm" onClick={openCreate}>
+              Nuevo plan
+            </Button>
+          }
+        />
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">

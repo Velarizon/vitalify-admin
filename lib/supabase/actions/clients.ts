@@ -3,6 +3,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { escapeForLike, normalizePagination, type PaginatedResult, type PaginationParams } from '@/lib/supabase/actions/pagination'
 
 export async function getClients(companyId: number) {
   const supabase = await createClient()
@@ -13,6 +14,37 @@ export async function getClients(companyId: number) {
     .order('id', { ascending: false })
   if (error) throw new Error(error.message)
   return data ?? []
+}
+
+export async function getClientsPage(
+  companyId: number,
+  params?: PaginationParams
+): Promise<PaginatedResult<Awaited<ReturnType<typeof getClients>>[number]>> {
+  const supabase = await createClient()
+  const { page, pageSize, search, from, to } = normalizePagination(params)
+
+  let query = supabase
+    .from('clients')
+    .select('*, subscriptions(id, end_date, plans(name))', { count: 'exact' })
+    .eq('company_id', companyId)
+    .order('id', { ascending: false })
+
+  if (search) {
+    const value = escapeForLike(search)
+    query = query.or(
+      `name.ilike.%${value}%,last_name.ilike.%${value}%,email.ilike.%${value}%,phone_number.ilike.%${value}%`
+    )
+  }
+
+  const { data, error, count } = await query.range(from, to)
+  if (error) throw new Error(error.message)
+
+  return {
+    data: data ?? [],
+    count: count ?? 0,
+    page,
+    pageSize,
+  }
 }
 
 export async function createClientRecord(client: {
