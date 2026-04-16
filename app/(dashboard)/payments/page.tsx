@@ -1,16 +1,17 @@
 // app/(dashboard)/payments/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
-import { getPayments } from '@/lib/supabase/actions/payments'
+import { getPaymentsPage } from '@/lib/supabase/actions/payments'
 import { usePreferencesStore } from '@/stores/preferences'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreditCard, Banknote, Calendar, Hash, User, Activity } from 'lucide-react'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 
-type Payment = Awaited<ReturnType<typeof getPayments>>[number]
+type Payment = Awaited<ReturnType<typeof getPaymentsPage>>['data'][number]
 
 const methodLabel: Record<string, { label: string, icon: any }> = {
   cash: { label: 'Efectivo', icon: Banknote },
@@ -27,7 +28,7 @@ const columns: ColumnDef<Payment>[] = [
   {
     header: 'Miembro',
     cell: ({ row }) => {
-      const c = (row.original.subscriptions as any)?.clients
+      const c = row.original.subscriptions?.clients
       return (
         <div className="flex items-center gap-2">
           <User className="h-3.5 w-3.5 text-muted-foreground/50" />
@@ -78,7 +79,7 @@ const columns: ColumnDef<Payment>[] = [
   {
     header: 'Turno ID',
     cell: ({ row }) => {
-      const shiftId = (row.original as any).shift_id
+      const shiftId = row.original.shift_id
       return shiftId ? (
         <Badge variant="outline" className="text-[9px] font-mono border-primary/20 bg-primary/5 text-primary">
           SHIFT_{shiftId}
@@ -92,11 +93,33 @@ export default function PaymentsPage() {
   const { selectedLocation } = usePreferencesStore()
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const [totalRows, setTotalRows] = useState(0)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
+
+  const loadPayments = useCallback(async () => {
+    if (!selectedLocation) return
+    setLoading(true)
+    const result = await getPaymentsPage(selectedLocation.location.id, {
+      page: pageIndex + 1,
+      pageSize,
+      search: debouncedSearch,
+    })
+    setPayments(result.data)
+    setTotalRows(result.count)
+    setLoading(false)
+  }, [debouncedSearch, pageIndex, pageSize, selectedLocation])
 
   useEffect(() => {
-    if (!selectedLocation) return
-    getPayments(selectedLocation.location.id).then(d => { setPayments(d); setLoading(false) })
-  }, [selectedLocation])
+    const timeoutId = window.setTimeout(() => {
+      void loadPayments()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadPayments])
+
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -116,8 +139,31 @@ export default function PaymentsPage() {
       </div>
 
       <div className="neon-card rounded-xl overflow-hidden">
-        {loading ? <TableSkeleton />
-          : <DataTable columns={columns} data={payments} searchPlaceholder="Filtrar por folio, miembro o método..." />}
+        {loading ? <TableSkeleton /> : (
+          <DataTable
+            columns={columns}
+            data={payments}
+            searchPlaceholder="Filtrar por folio, miembro o método..."
+            pagination={{
+              pageIndex,
+              pageSize,
+              pageCount,
+              totalRows,
+              onPageChange: (nextPageIndex) => setPageIndex(Math.max(0, Math.min(nextPageIndex, pageCount - 1))),
+              onPageSizeChange: (nextPageSize) => {
+                setPageIndex(0)
+                setPageSize(nextPageSize)
+              },
+            }}
+            search={{
+              value: search,
+              onChange: (value) => {
+                setPageIndex(0)
+                setSearch(value)
+              },
+            }}
+          />
+        )}
       </div>
     </div>
   )

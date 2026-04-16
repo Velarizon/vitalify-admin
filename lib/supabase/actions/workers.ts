@@ -5,6 +5,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { Database } from '@/types/supabase'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { escapeForLike, normalizePagination, type PaginatedResult, type PaginationParams } from '@/lib/supabase/actions/pagination'
 
 export interface WorkerAccess {
   id: number
@@ -55,6 +56,59 @@ export async function getWorkers(companyId: number): Promise<WorkerAccess[]> {
 
   const emailByWorkerId = new Map(emailEntries)
   return rows.map((row) => ({ ...row, email: emailByWorkerId.get(row.id) ?? null }))
+}
+
+export async function getWorkersPage(
+  companyId: number,
+  params?: PaginationParams
+): Promise<PaginatedResult<WorkerAccess>> {
+  const supabase = await createServerClient()
+  const { page, pageSize, search, from, to } = normalizePagination(params)
+
+  let query = supabase
+    .from('user_access')
+    .select('id, role, user_id, location_id, location:locations(id, name)', { count: 'exact' })
+    .eq('company_id', companyId)
+    .in('role', ['admin', 'worker'])
+    .order('id', { ascending: false })
+
+  if (search) {
+    const value = escapeForLike(search)
+    query = query.or(`role.ilike.%${value}%,user_id.ilike.%${value}%`)
+  }
+
+  const { data, error, count } = await query.range(from, to)
+  if (error) throw new Error(error.message)
+
+  const rows = (data as unknown as Omit<WorkerAccess, 'email'>[]) ?? []
+  const adminClient = createAdminClient()
+
+  if (!adminClient) {
+    return {
+      data: rows.map((row) => ({ ...row, email: null })),
+      count: count ?? 0,
+      page,
+      pageSize,
+    }
+  }
+
+  const emailEntries = await Promise.all(
+    rows.map(async (row) => {
+      if (!row.user_id) return [row.id, null] as const
+      const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(row.user_id)
+      if (userError) return [row.id, null] as const
+      return [row.id, userData.user.email ?? null] as const
+    })
+  )
+
+  const emailByWorkerId = new Map(emailEntries)
+
+  return {
+    data: rows.map((row) => ({ ...row, email: emailByWorkerId.get(row.id) ?? null })),
+    count: count ?? 0,
+    page,
+    pageSize,
+  }
 }
 
 export async function inviteWorker(

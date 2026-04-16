@@ -1,7 +1,7 @@
 // app/(dashboard)/workers/page.tsx
 'use client'
 
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Badge } from '@/components/ui/badge'
@@ -12,12 +12,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getLocations } from '@/lib/supabase/actions/locations'
-import { deactivateWorker, getWorkers, inviteWorker, updateWorker } from '@/lib/supabase/actions/workers'
+import { deactivateWorker, getWorkersPage, inviteWorker, updateWorker } from '@/lib/supabase/actions/workers'
 import { useAuthStore, type UserRole } from '@/stores/auth'
 import { toast } from 'sonner'
 import { UserPlus, Pencil, ShieldAlert, ShieldCheck, MapPin, Mail } from 'lucide-react'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { TableSkeleton } from '@/components/shared/table-skeleton'
 
-type Worker = Awaited<ReturnType<typeof getWorkers>>[number]
+type Worker = Awaited<ReturnType<typeof getWorkersPage>>['data'][number]
 type Location = Awaited<ReturnType<typeof getLocations>>[number]
 
 type InviteForm = {
@@ -54,28 +56,51 @@ export default function WorkersPage() {
   const [savingInvite, setSavingInvite] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
   const [deactivatingId, setDeactivatingId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const [totalRows, setTotalRows] = useState(0)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!userData) return
+    setLoading(true)
     try {
-      const [workerRows, locationRows] = await Promise.all([
-        getWorkers(userData.company.id),
-        getLocations(userData.company.id),
-      ])
-      setWorkers(workerRows)
+      const workerResult = await getWorkersPage(userData.company.id, {
+        page: pageIndex + 1,
+        pageSize,
+        search: debouncedSearch,
+      })
+      setWorkers(workerResult.data)
+      setTotalRows(workerResult.count)
+    } catch (error) {
+      toast.error((error as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }, [debouncedSearch, pageIndex, pageSize, userData])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadData()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadData])
+
+  useEffect(() => {
+    if (!userData) return
+
+    void getLocations(userData.company.id).then((locationRows) => {
       setLocations(locationRows)
       setInviteForm((current) => ({
         ...current,
         location_id: current.location_id || String(locationRows[0]?.id ?? ''),
       }))
-    } catch (error) {
-      toast.error((error as Error).message)
-    }
-  }
-
-  useEffect(() => {
-    loadData()
+    })
   }, [userData])
+
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
 
   const openInvite = () => {
     setInviteForm({
@@ -253,10 +278,31 @@ export default function WorkersPage() {
       </div>
 
       <div className="neon-card rounded-xl overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={workers}
-        />
+        {loading ? <TableSkeleton /> : (
+          <DataTable
+            columns={columns}
+            data={workers}
+            searchPlaceholder="Buscar trabajador..."
+            pagination={{
+              pageIndex,
+              pageSize,
+              pageCount,
+              totalRows,
+              onPageChange: (nextPageIndex) => setPageIndex(Math.max(0, Math.min(nextPageIndex, pageCount - 1))),
+              onPageSizeChange: (nextPageSize) => {
+                setPageIndex(0)
+                setPageSize(nextPageSize)
+              },
+            }}
+            search={{
+              value: search,
+              onChange: (value) => {
+                setPageIndex(0)
+                setSearch(value)
+              },
+            }}
+          />
+        )}
       </div>
 
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>

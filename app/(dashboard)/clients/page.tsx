@@ -1,13 +1,13 @@
 // app/(dashboard)/clients/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { getClients } from '@/lib/supabase/actions/clients'
+import { getClientsPage } from '@/lib/supabase/actions/clients'
 import { getActivePlans } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
 import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Target, Shield } from 'lucide-react'
@@ -16,8 +16,9 @@ import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 
-type Client = Awaited<ReturnType<typeof getClients>>[number]
+type Client = Awaited<ReturnType<typeof getClientsPage>>['data'][number]
 
 function statusBadge(client: Client) {
   const sub = client.subscriptions?.[0]
@@ -49,27 +50,52 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [plans, setPlans] = useState<{ id: number; name: string; price: number | null; duration: string | null }[]>([])
   const [loading, setLoading] = useState(true)
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const [totalRows, setTotalRows] = useState(0)
+  const [search, setSearch] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [renewingClient, setRenewingClient] = useState<Client | null>(null)
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!userData) return
-    const [cData, pData] = await Promise.all([
-      getClients(userData.company.id),
-      getActivePlans(userData.company.id)
-    ])
-    setClients(cData)
-    setPlans(pData.map(p => ({
-      id: p.id,
-      name: p.name ?? 'Sin nombre',
-      price: p.price ?? null,
-      duration: p.duration ? String(p.duration) : null,
-    })))
-    setLoading(false)
-  }
+    setLoading(true)
+    try {
+      const clientsResult = await getClientsPage(userData.company.id, {
+        page: pageIndex + 1,
+        pageSize,
+        search: debouncedSearch,
+      })
+      setClients(clientsResult.data)
+      setTotalRows(clientsResult.count)
+    } finally {
+      setLoading(false)
+    }
+  }, [debouncedSearch, pageIndex, pageSize, userData])
 
-  useEffect(() => { load() }, [userData])
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void load()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [load])
+
+  useEffect(() => {
+    if (!userData) return
+
+    void getActivePlans(userData.company.id).then((pData) => {
+      setPlans(pData.map(p => ({
+        id: p.id,
+        name: p.name ?? 'Sin nombre',
+        price: p.price ?? null,
+        duration: p.duration ? String(p.duration) : null,
+      })))
+    })
+  }, [userData])
+
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
 
   const stats = {
     total: clients.length,
@@ -110,7 +136,7 @@ export default function ClientsPage() {
     {
       header: 'Protocolo Plan',
       cell: ({ row }) => {
-        const planName = (row.original.subscriptions as any)?.[0]?.plans?.name
+        const planName = row.original.subscriptions?.[0]?.plans?.name
         return (
           <div className="flex items-center gap-2">
             <Shield className="h-3 w-3 text-primary/40" />
@@ -187,13 +213,29 @@ export default function ClientsPage() {
       {loading ? (
         <TableSkeleton />
       ) : (
-        <div className="space-y-4">
-          <DataTable 
-            columns={columns} 
-            data={clients} 
-            searchPlaceholder="Ej: ID_001 o NOMBRE..." 
-          />
-        </div>
+        <DataTable
+          columns={columns}
+          data={clients}
+          searchPlaceholder="Ej: ID_001 o NOMBRE..."
+          pagination={{
+            pageIndex,
+            pageSize,
+            pageCount,
+            totalRows,
+            onPageChange: (nextPageIndex) => setPageIndex(Math.max(0, Math.min(nextPageIndex, pageCount - 1))),
+            onPageSizeChange: (nextPageSize) => {
+              setPageIndex(0)
+              setPageSize(nextPageSize)
+            },
+          }}
+          search={{
+            value: search,
+            onChange: (value) => {
+              setPageIndex(0)
+              setSearch(value)
+            },
+          }}
+        />
       )}
 
       <CreateClientWizard

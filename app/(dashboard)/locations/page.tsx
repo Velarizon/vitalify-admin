@@ -1,17 +1,19 @@
 'use client'
 
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getLocations, upsertLocation } from '@/lib/supabase/actions/locations'
+import { getLocationsPage, upsertLocation } from '@/lib/supabase/actions/locations'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { TableSkeleton } from '@/components/shared/table-skeleton'
 
-type Location = Awaited<ReturnType<typeof getLocations>>[number]
+type Location = Awaited<ReturnType<typeof getLocationsPage>>['data'][number]
 
 type LocationForm = {
   id?: number
@@ -34,20 +36,39 @@ export default function LocationsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState<LocationForm>(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const [totalRows, setTotalRows] = useState(0)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-  const loadLocations = async () => {
+  const loadLocations = useCallback(async () => {
     if (!userData) return
+    setLoading(true)
     try {
-      const data = await getLocations(userData.company.id)
-      setLocations(data)
+      const result = await getLocationsPage(userData.company.id, {
+        page: pageIndex + 1,
+        pageSize,
+        search: debouncedSearch,
+      })
+      setLocations(result.data)
+      setTotalRows(result.count)
     } catch (error) {
       toast.error((error as Error).message)
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [debouncedSearch, pageIndex, pageSize, userData])
 
   useEffect(() => {
-    loadLocations()
-  }, [userData])
+    const timeoutId = window.setTimeout(() => {
+      void loadLocations()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadLocations])
+
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
 
   const openCreate = () => {
     setForm(emptyForm)
@@ -108,15 +129,37 @@ export default function LocationsPage() {
   return (
     <div className="space-y-3">
       <h1 className="text-lg font-semibold">Ubicaciones</h1>
-      <DataTable
-        columns={columns}
-        data={locations}
-        toolbar={
-          <Button size="sm" onClick={openCreate}>
-            Nueva ubicación
-          </Button>
-        }
-      />
+      {loading ? (
+        <TableSkeleton />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={locations}
+          pagination={{
+            pageIndex,
+            pageSize,
+            pageCount,
+            totalRows,
+            onPageChange: (nextPageIndex) => setPageIndex(Math.max(0, Math.min(nextPageIndex, pageCount - 1))),
+            onPageSizeChange: (nextPageSize) => {
+              setPageIndex(0)
+              setPageSize(nextPageSize)
+            },
+          }}
+          search={{
+            value: search,
+            onChange: (value) => {
+              setPageIndex(0)
+              setSearch(value)
+            },
+          }}
+          toolbar={
+            <Button size="sm" onClick={openCreate}>
+              Nueva ubicación
+            </Button>
+          }
+        />
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
