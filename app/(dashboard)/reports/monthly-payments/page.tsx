@@ -34,6 +34,12 @@ const paymentMethodConfig: Record<string, { label: string; icon: any }> = {
   transfer: { label: 'Transferencia', icon: ArrowLeftRight },
 }
 
+const getPaymentTypeLabel = (type: string | null) => {
+  if (!type) return 'Sin clasificar'
+  if (type === 'new_subscription') return 'Nueva'
+  return 'Renovación'
+}
+
 const columns: ColumnDef<Payment>[] = [
   {
     header: 'Cliente',
@@ -133,7 +139,7 @@ export default function MonthlyPaymentsPage() {
         const name = client ? `${client.name} ${client.last_name}` : ''
         const plan = (payment.subscriptions as any)?.plans?.name ?? ''
         const method = paymentMethodConfig[payment.payment_method]?.label || payment.payment_method
-        const type = payment.payment_type === 'new_subscription' ? 'Nueva' : payment.payment_type === 'renewal' ? 'Renovación' : ''
+        const type = getPaymentTypeLabel(payment.payment_type)
         const date = formatDateTime(payment.created_at)
         const user = (payment as any).user_data
         const responsible = user ? `${user.name} ${user.last_name}` : ''
