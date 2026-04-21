@@ -159,7 +159,7 @@ export default function PlansPage() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-heading font-bold tracking-tight">Catálogo de Planes</h1>
-          <p className="text-hud tracking-widest uppercase">Estrategia de Membresías</p>
+          <p className="text-technical tracking-widest uppercase">Estrategia de Membresías</p>
         </div>
         <Button size="sm" className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={openCreate}>
           <Plus size={14} /> Nuevo Plan
@@ -183,7 +183,7 @@ export default function PlansPage() {
                           {plan.name}
                         </h3>
                       </div>
-                      <p className="text-hud text-[9px] uppercase tracking-[0.2em]">{plan.duration as string}</p>
+                      <p className="text-technical text-[9px] uppercase tracking-[0.2em]">{plan.duration as string}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold font-heading text-primary group-hover:drop-shadow-[0_0_8px_rgba(0,255,157,0.3)] transition-all">
@@ -249,7 +249,7 @@ export default function PlansPage() {
 
           <form className="space-y-4 pt-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="plan-name" className="text-hud">Nombre Comercial</Label>
+              <Label htmlFor="plan-name" className="text-technical">Nombre Comercial</Label>
               <Input
                 id="plan-name"
                 value={form.name}
@@ -261,7 +261,7 @@ export default function PlansPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-hud">Ciclo de Renovación</Label>
+                <Label className="text-technical">Ciclo de Renovación</Label>
                 <Select
                   value={form.duration}
                   onValueChange={(value) => setForm((current) => ({ ...current, duration: value ?? '' }))}
@@ -280,7 +280,7 @@ export default function PlansPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="plan-price" className="text-hud">Costo (MXN)</Label>
+                <Label htmlFor="plan-price" className="text-technical">Costo (MXN)</Label>
                 <div className="relative">
                   <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -298,7 +298,7 @@ export default function PlansPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-hud">Protocolo de Acceso</Label>
+              <Label className="text-technical">Protocolo de Acceso</Label>
               <Select
                 value={form.access_level}
                 onValueChange={(value) =>
@@ -323,7 +323,7 @@ export default function PlansPage() {
             {form.access_level === 'limited' && (
               <div className="grid gap-4 sm:grid-cols-2 animate-in slide-in-from-top-2 duration-200">
                 <div className="space-y-2">
-                  <Label htmlFor="plan-start-time" className="text-hud">Apertura</Label>
+                  <Label htmlFor="plan-start-time" className="text-technical">Apertura</Label>
                   <Input
                     id="plan-start-time"
                     type="time"
@@ -337,7 +337,7 @@ export default function PlansPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="plan-end-time" className="text-hud">Cierre</Label>
+                  <Label htmlFor="plan-end-time" className="text-technical">Cierre</Label>
                   <Input
                     id="plan-end-time"
                     type="time"

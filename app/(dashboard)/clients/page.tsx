@@ -189,7 +189,7 @@ export default function ClientsPage() {
             <Users className="h-4 w-4 text-primary" />
             <h1 className="text-2xl font-heading font-black uppercase italic tracking-tighter">Terminal Miembros</h1>
           </div>
-          <p className="text-hud tracking-[0.3em]">Gestión de Acceso y Membresías v2.4</p>
+          <p className="text-technical tracking-[0.3em]">Gestión de Acceso y Membresías v2.4</p>
         </div>
         <Button 
           size="sm" 

@@ -310,7 +310,7 @@ export default function WorkersPage() {
 
           <form className="space-y-4 pt-4" onSubmit={handleInvite}>
             <div className="space-y-2">
-              <Label htmlFor="worker-email" className="text-hud">Email Corporativo</Label>
+              <Label htmlFor="worker-email" className="text-technical">Email Corporativo</Label>
               <Input
                 id="worker-email"
                 type="email"
@@ -323,7 +323,7 @@ export default function WorkersPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-hud">Rol de Acceso</Label>
+                <Label className="text-technical">Rol de Acceso</Label>
                 <Select
                   value={inviteForm.role}
                   onValueChange={(value) =>
@@ -341,7 +341,7 @@ export default function WorkersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-hud">Ubicación Asignada</Label>
+                <Label className="text-technical">Ubicación Asignada</Label>
                 <Select
                   value={inviteForm.location_id}
                   onValueChange={(value) => setInviteForm((current) => ({ ...current, location_id: value ?? '' }))}
@@ -382,7 +382,7 @@ export default function WorkersPage() {
           <form className="space-y-4 pt-4" onSubmit={handleEdit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-hud">Rol de Acceso</Label>
+                <Label className="text-technical">Rol de Acceso</Label>
                 <Select
                   value={editForm.role}
                   onValueChange={(value) =>
@@ -400,7 +400,7 @@ export default function WorkersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-hud">Ubicación Asignada</Label>
+                <Label className="text-technical">Ubicación Asignada</Label>
                 <Select
                   value={editForm.location_id}
                   onValueChange={(value) => setEditForm((current) => ({ ...current, location_id: value ?? '' }))}

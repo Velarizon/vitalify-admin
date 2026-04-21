@@ -54,7 +54,7 @@ export default function LoginPage() {
         <div className="text-center space-y-2">
           <div className="text-5xl text-primary drop-shadow-[0_0_15px_rgba(0,255,157,0.3)]">⚡</div>
           <h1 className="text-3xl font-heading font-bold tracking-tight text-foreground">Vitalify</h1>
-          <p className="text-hud tracking-[0.2em]">
+          <p className="text-technical tracking-[0.2em]">
             Management Portal v2.4
           </p>
         </div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
         <div className="glass-panel p-8 rounded-xl space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-hud">
+              <Label htmlFor="email" className="text-technical">
                 Email de acceso
               </Label>
               <Input
@@ -77,7 +77,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" title="Contraseña" className="text-hud">
+              <Label htmlFor="password" title="Contraseña" className="text-technical">
                 Contraseña
               </Label>
               <Input

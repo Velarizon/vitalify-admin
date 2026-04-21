@@ -123,7 +123,7 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-heading font-bold tracking-tight">Registro de Pagos</h1>
-          <p className="text-hud tracking-widest uppercase">Historial de Transacciones</p>
+          <p className="text-technical tracking-widest uppercase">Historial de Transacciones</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">

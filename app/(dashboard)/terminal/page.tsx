@@ -61,7 +61,7 @@ export default function TerminalPage() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-heading font-bold tracking-tight">Configuración de Nodo</h1>
-          <p className="text-hud tracking-widest uppercase italic">Interface Biométrica Hikvision</p>
+          <p className="text-technical tracking-widest uppercase italic">Interface Biométrica Hikvision</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary shadow-neon animate-pulse" />
@@ -80,7 +80,7 @@ export default function TerminalPage() {
           <CardContent className="p-6 space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="agent-ip" className="text-hud">Dirección IP del Agente (Proxy)</Label>
+                <Label htmlFor="agent-ip" className="text-technical">Dirección IP del Agente (Proxy)</Label>
                 <div className="relative">
                   <TerminalIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/40" />
                   <Input
@@ -94,7 +94,7 @@ export default function TerminalPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="terminal-ip" className="text-hud">Dirección IP del Dispositivo</Label>
+                <Label htmlFor="terminal-ip" className="text-technical">Dirección IP del Dispositivo</Label>
                 <div className="relative">
                   <Cpu className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/40" />
                   <Input
@@ -108,7 +108,7 @@ export default function TerminalPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="terminal-username" className="text-hud">Identificador de Usuario</Label>
+                <Label htmlFor="terminal-username" className="text-technical">Identificador de Usuario</Label>
                 <Input
                   id="terminal-username"
                   value={username}
@@ -119,7 +119,7 @@ export default function TerminalPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="terminal-password" className="text-hud">Token de Seguridad</Label>
+                <Label htmlFor="terminal-password" className="text-technical">Token de Seguridad</Label>
                 <Input
                   id="terminal-password"
                   type="password"

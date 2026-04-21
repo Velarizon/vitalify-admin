@@ -120,7 +120,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
             <TabsContent value="info" className="mt-6 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-hud">Nombre</Label>
+                  <Label className="text-technical">Nombre</Label>
                   <Input
                     value={formData.name}
                     onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
@@ -128,7 +128,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-hud">Apellido</Label>
+                  <Label className="text-technical">Apellido</Label>
                   <Input
                     value={formData.last_name}
                     onChange={e => setFormData(p => ({ ...p, last_name: e.target.value }))}
@@ -139,7 +139,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
               
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-hud">Email corporativo</Label>
+                  <Label className="text-technical">Email corporativo</Label>
                   <Input
                     type="email"
                     value={formData.email}
@@ -148,7 +148,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-hud">Teléfono de contacto</Label>
+                  <Label className="text-technical">Teléfono de contacto</Label>
                   <Input
                     value={formData.phone_number}
                     onChange={e => setFormData(p => ({ ...p, phone_number: e.target.value }))}
@@ -159,7 +159,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-hud">Fecha de nacimiento</Label>
+                  <Label className="text-technical">Fecha de nacimiento</Label>
                   <Input
                     type="date"
                     value={formData.date_of_birth}
@@ -168,7 +168,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-hud">Género</Label>
+                  <Label className="text-technical">Género</Label>
                   <Select
                     value={formData.gender}
                     onValueChange={v => setFormData(p => ({ ...p, gender: v ?? 'M' }))}
@@ -218,11 +218,11 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   <div className="glass-panel rounded-lg p-5 border-l-4 border-l-primary">
                     <div className="flex items-center justify-between mb-4">
                       <div className="space-y-0.5">
-                        <p className="text-hud">Plan contratado</p>
+                        <p className="text-technical">Plan contratado</p>
                         <h4 className="text-lg font-bold text-primary italic uppercase">{(subscription.plans as any)?.name ?? 'Plan Personalizado'}</h4>
                       </div>
                       <div className="text-right">
-                        <p className="text-hud">Estado de vigencia</p>
+                        <p className="text-technical">Estado de vigencia</p>
                         <p className={cn("text-xs font-bold uppercase tracking-widest", isExpired ? "text-destructive" : "text-primary")}>
                           {isExpired ? 'Vencido' : 'En curso'}
                         </p>
@@ -231,13 +231,13 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                     
                     <div className="grid grid-cols-2 gap-8 border-t border-border/30 pt-4">
                       <div>
-                        <p className="text-hud mb-1">Fecha de inicio</p>
+                        <p className="text-technical mb-1">Fecha de inicio</p>
                         <p className="text-sm font-mono tracking-tight text-foreground">
                           {subscription.start_date ? new Date(subscription.start_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-hud mb-1">Próximo vencimiento</p>
+                        <p className="text-technical mb-1">Próximo vencimiento</p>
                         <p className={cn("text-sm font-mono tracking-tight", isExpired ? "text-destructive" : "text-foreground")}>
                           {subscription.end_date ? new Date(subscription.end_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
                         </p>

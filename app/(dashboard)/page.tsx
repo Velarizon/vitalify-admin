@@ -45,7 +45,7 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
             <h1 className="text-2xl font-heading font-black uppercase italic tracking-tighter text-foreground">Centro de Mando</h1>
           </div>
-          <p className="text-hud tracking-[0.3em]">Monitoreo de Telemetría Operativa</p>
+          <p className="text-technical tracking-[0.3em]">Monitoreo de Telemetría Operativa</p>
         </div>
         <div className="text-right hidden sm:block">
           <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Ciclo Actual</p>
