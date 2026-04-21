@@ -52,7 +52,7 @@ export function Topbar({ activeShiftOpenedAt, hasActiveShift, onOpenDoor }: Topb
   return (
     <>
       <header
-        className="fixed top-0 right-0 h-12 bg-card border-b border-border flex items-center px-4 gap-3 z-30 transition-all duration-200"
+        className="fixed top-0 right-0 h-16 bg-background/50 backdrop-blur-xl border-b border-white/5 flex items-center px-4 gap-3 z-30 transition-all duration-200"
         style={{ left: typeof window !== 'undefined' && window.innerWidth < 768 ? 0 : sidebarWidth }}
       >
         {/* Mobile hamburger */}
