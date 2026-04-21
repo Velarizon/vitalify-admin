@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { getShiftDetail, closeShift } from '@/lib/supabase/actions/shifts'
 import { toast } from 'sonner'
+import { Clock, CheckCircle } from 'lucide-react'
 
 type Detail = Awaited<ReturnType<typeof getShiftDetail>>
 type Payment = Detail['payments'][number]
@@ -30,6 +31,18 @@ const columns: ColumnDef<Payment>[] = [
   },
   { header: 'Monto', cell: ({ row }) => fmt(row.original.amount ?? 0) },
   { accessorKey: 'payment_method', header: 'Método' },
+  {
+    header: 'Tipo',
+    accessorKey: 'payment_type',
+    cell: ({ row }) => {
+      const type = row.original.payment_type
+      if (!type) return '—'
+      if (type === 'new_subscription') {
+        return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Nueva</Badge>
+      }
+      return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Renovación</Badge>
+    },
+  },
   { accessorKey: 'payment_date', header: 'Hora', cell: ({ row }) => row.original.payment_date?.slice(11, 16) ?? '—' },
 ]
 
@@ -56,7 +69,7 @@ export default function ShiftDetailPage() {
   }
 
   if (!detail) return (
-    <div className="space-y-4 max-w-3xl animate-pulse">
+    <div className="space-y-4 max-w-[1600px] mx-auto animate-pulse">
       <div className="flex items-center gap-2">
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-5 w-16 rounded-full" />
@@ -77,15 +90,50 @@ export default function ShiftDetailPage() {
   const isOpen = !shift.closed_at
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 max-w-[1600px] mx-auto">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold flex-1">Turno #{shift.id}</h1>
         {isOpen ? <Badge className="bg-primary">Activo</Badge> : <Badge variant="outline">Cerrado</Badge>}
       </div>
 
-      <div className="text-xs text-muted-foreground space-y-0.5">
-        <div>Apertura: {shift.opened_at?.replace('T', ' ').slice(0, 16)}</div>
-        {shift.closed_at && <div>Cierre: {shift.closed_at.replace('T', ' ').slice(0, 16)}</div>}
+      {/* Timeline */}
+      <div className="relative flex items-center gap-4 py-4 px-6 glass-panel rounded-xl">
+        {/* Apertura */}
+        <div className="flex items-center gap-3 flex-1">
+          <div className="h-10 w-10 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center shadow-neon">
+            <Clock size={18} className="text-primary" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Apertura</p>
+            <p className="text-sm font-medium text-foreground">{shift.opened_at?.replace('T', ' ').slice(0, 16)}</p>
+          </div>
+        </div>
+
+        {/* Connector line */}
+        <div className="flex-1 h-px bg-gradient-to-r from-primary via-border to-border" />
+
+        {/* Cierre */}
+        {shift.closed_at ? (
+          <div className="flex items-center gap-3 flex-1 justify-end">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground text-right">Cierre</p>
+              <p className="text-sm font-medium text-foreground text-right">{shift.closed_at.replace('T', ' ').slice(0, 16)}</p>
+            </div>
+            <div className="h-10 w-10 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center shadow-neon">
+              <CheckCircle size={18} className="text-primary" />
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 flex-1 justify-end">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40 text-right">Cierre</p>
+              <p className="text-sm font-medium text-muted-foreground/40 text-right">En curso...</p>
+            </div>
+            <div className="h-10 w-10 rounded-full bg-border/20 border-2 border-border/40 flex items-center justify-center">
+              <Clock size={18} className="text-muted-foreground/40 animate-pulse" />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
