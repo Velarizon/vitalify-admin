@@ -43,7 +43,7 @@ export function Sidebar() {
             href={item.href}
             onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false) }}
             className={cn(
-              'relative flex items-center gap-3 px-4 h-11 text-[10px] uppercase tracking-[0.2em] font-bold transition-all duration-200 rounded-lg',
+              'relative flex items-center gap-3 px-4 h-11 text-[10px] uppercase tracking-[0.2em] font-bold transition-all duration-200 rounded-lg group',
               isActive
                 ? 'glass-panel text-primary'
                 : 'text-white/60 hover:text-white hover:bg-white/5'
