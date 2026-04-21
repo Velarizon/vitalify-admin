@@ -5,14 +5,34 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { MetricCard } from '@/components/shared/metric-card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getPaymentsByMonth } from '@/lib/supabase/actions/payments'
 import { usePreferencesStore } from '@/stores/preferences'
+import { Banknote, CreditCard, ArrowLeftRight } from 'lucide-react'
 
 type Payment = Awaited<ReturnType<typeof getPaymentsByMonth>>[number]
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
+
+const formatDateTime = (isoString: string | null) => {
+  if (!isoString) return '—'
+  const date = new Date(isoString)
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+const paymentMethodConfig: Record<string, { label: string; icon: any }> = {
+  cash: { label: 'Efectivo', icon: Banknote },
+  card: { label: 'Tarjeta', icon: CreditCard },
+  transfer: { label: 'Transferencia', icon: ArrowLeftRight },
+}
 
 const columns: ColumnDef<Payment>[] = [
   {
@@ -30,11 +50,44 @@ const columns: ColumnDef<Payment>[] = [
     header: 'Monto',
     cell: ({ row }) => (row.original.amount != null ? fmt(row.original.amount) : '—'),
   },
-  { accessorKey: 'payment_method', header: 'Método' },
   {
-    accessorKey: 'payment_date',
-    header: 'Fecha',
-    cell: ({ row }) => row.original.payment_date?.split('T')[0] ?? '—',
+    accessorKey: 'payment_method',
+    header: 'Método',
+    cell: ({ row }) => {
+      const method = row.original.payment_method
+      const config = paymentMethodConfig[method] || { label: method, icon: null }
+      const Icon = config.icon
+      return (
+        <div className="flex items-center gap-2">
+          {Icon && <Icon size={14} className="text-muted-foreground" />}
+          <span>{config.label}</span>
+        </div>
+      )
+    },
+  },
+  {
+    header: 'Tipo',
+    accessorKey: 'payment_type',
+    cell: ({ row }) => {
+      const type = row.original.payment_type
+      if (!type) return '—'
+      if (type === 'new_subscription') {
+        return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Nueva</Badge>
+      }
+      return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Renovación</Badge>
+    },
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Fecha y hora',
+    cell: ({ row }) => formatDateTime(row.original.created_at),
+  },
+  {
+    header: 'Responsable',
+    cell: ({ row }) => {
+      const user = (row.original as any).user_data
+      return user ? `${user.name} ${user.last_name}` : '—'
+    },
   },
 ]
 
@@ -60,13 +113,18 @@ export default function MonthlyPaymentsPage() {
   const other = total - cash - card
 
   const exportCSV = () => {
-    const header = 'Cliente,Plan,Monto,Método,Fecha\n'
+    const header = 'Cliente,Plan,Monto,Método,Tipo,Fecha y hora,Responsable\n'
     const rows = payments
       .map((payment) => {
         const client = (payment.subscriptions as any)?.clients
         const name = client ? `${client.name} ${client.last_name}` : ''
         const plan = (payment.subscriptions as any)?.plans?.name ?? ''
-        return `"${name}","${plan}",${payment.amount ?? 0},"${payment.payment_method}","${payment.payment_date?.split('T')[0] ?? ''}"`
+        const method = paymentMethodConfig[payment.payment_method]?.label || payment.payment_method
+        const type = payment.payment_type === 'new_subscription' ? 'Nueva' : payment.payment_type === 'renewal' ? 'Renovación' : ''
+        const date = formatDateTime(payment.created_at)
+        const user = (payment as any).user_data
+        const responsible = user ? `${user.name} ${user.last_name}` : ''
+        return `"${name}","${plan}",${payment.amount ?? 0},"${method}","${type}","${date}","${responsible}"`
       })
       .join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv' })
@@ -86,7 +144,7 @@ export default function MonthlyPaymentsPage() {
         <h1 className="flex-1 text-lg font-semibold">Pagos Mensuales</h1>
         <Select value={String(month)} onValueChange={(value) => setMonth(Number(value))}>
           <SelectTrigger className="h-7 w-32 text-xs">
-            <SelectValue />
+            <SelectValue>{months[month - 1]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {months.map((label, index) => (
