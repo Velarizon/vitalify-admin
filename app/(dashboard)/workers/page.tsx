@@ -16,7 +16,6 @@ import { deactivateWorker, getWorkersPage, inviteWorker, updateWorker } from '@/
 import { useAuthStore, type UserRole } from '@/stores/auth'
 import { toast } from 'sonner'
 import { UserPlus, Pencil, ShieldAlert, ShieldCheck, MapPin, Mail } from 'lucide-react'
-import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 
 type Worker = Awaited<ReturnType<typeof getWorkersPage>>['data'][number]
@@ -61,8 +60,6 @@ export default function WorkersPage() {
   const [pageSize, setPageSize] = useState(25)
   const [totalRows, setTotalRows] = useState(0)
   const [search, setSearch] = useState('')
-  const debouncedSearch = useDebouncedValue(search, 300)
-
   const loadData = useCallback(async () => {
     if (!userData) return
     setLoading(true)
@@ -70,7 +67,7 @@ export default function WorkersPage() {
       const workerResult = await getWorkersPage(userData.company.id, {
         page: pageIndex + 1,
         pageSize,
-        search: debouncedSearch,
+        search,
       })
       setWorkers(workerResult.data)
       setTotalRows(workerResult.count)
@@ -79,7 +76,7 @@ export default function WorkersPage() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, pageIndex, pageSize, userData])
+  }, [search, pageIndex, pageSize, userData])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -277,8 +274,8 @@ export default function WorkersPage() {
         </Button>
       </div>
 
-      <div className="neon-card rounded-xl overflow-hidden">
-        {loading ? <TableSkeleton /> : (
+      <div className="glass-panel rounded-xl overflow-hidden">
+        {loading && workers.length === 0 ? <TableSkeleton /> : (
           <DataTable
             columns={columns}
             data={workers}

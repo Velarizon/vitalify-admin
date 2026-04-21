@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Activity Heatmap Area (Placeholder for check-ins) */}
-        <div className="lg:col-span-8 neon-card rounded-xl p-6 space-y-6">
+        <div className="lg:col-span-8 glass-panel rounded-xl p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
@@ -122,7 +122,7 @@ export default function DashboardPage() {
 
         {/* Sidebar Panel: Birthdays & Quick Actions */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="neon-card rounded-xl p-6 space-y-4 border-l-4 border-l-primary">
+          <div className="glass-panel rounded-xl p-6 space-y-4 border-l-4 border-l-primary">
             <div className="flex items-center gap-2 border-b border-white/5 pb-3">
               <Cake className="h-4 w-4 text-primary" />
               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">Protocolo Cumpleaños</h2>

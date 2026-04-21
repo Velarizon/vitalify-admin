@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { getLocationsPage, upsertLocation } from '@/lib/supabase/actions/locations'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
-import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 
 type Location = Awaited<ReturnType<typeof getLocationsPage>>['data'][number]
@@ -41,8 +40,6 @@ export default function LocationsPage() {
   const [pageSize, setPageSize] = useState(25)
   const [totalRows, setTotalRows] = useState(0)
   const [search, setSearch] = useState('')
-  const debouncedSearch = useDebouncedValue(search, 300)
-
   const loadLocations = useCallback(async () => {
     if (!userData) return
     setLoading(true)
@@ -50,7 +47,7 @@ export default function LocationsPage() {
       const result = await getLocationsPage(userData.company.id, {
         page: pageIndex + 1,
         pageSize,
-        search: debouncedSearch,
+        search,
       })
       setLocations(result.data)
       setTotalRows(result.count)
@@ -59,7 +56,7 @@ export default function LocationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, pageIndex, pageSize, userData])
+  }, [search, pageIndex, pageSize, userData])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -129,7 +126,7 @@ export default function LocationsPage() {
   return (
     <div className="space-y-3">
       <h1 className="text-lg font-semibold">Ubicaciones</h1>
-      {loading ? (
+      {loading && locations.length === 0 ? (
         <TableSkeleton />
       ) : (
         <DataTable

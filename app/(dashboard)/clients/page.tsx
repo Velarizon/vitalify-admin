@@ -16,7 +16,6 @@ import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
-import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 
 type Client = Awaited<ReturnType<typeof getClientsPage>>['data'][number]
 
@@ -57,8 +56,6 @@ export default function ClientsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [renewingClient, setRenewingClient] = useState<Client | null>(null)
-  const debouncedSearch = useDebouncedValue(search, 300)
-
   const load = useCallback(async () => {
     if (!userData) return
     setLoading(true)
@@ -66,14 +63,14 @@ export default function ClientsPage() {
       const clientsResult = await getClientsPage(userData.company.id, {
         page: pageIndex + 1,
         pageSize,
-        search: debouncedSearch,
+        search,
       })
       setClients(clientsResult.data)
       setTotalRows(clientsResult.count)
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, pageIndex, pageSize, userData])
+  }, [search, pageIndex, pageSize, userData])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -210,7 +207,7 @@ export default function ClientsPage() {
         <MetricCard title="Vencimientos" value={stats.expired} className="border-destructive/20" />
       </div>
       
-      {loading ? (
+      {loading && clients.length === 0 ? (
         <TableSkeleton />
       ) : (
         <DataTable

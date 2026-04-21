@@ -1,5 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
+const WIDTHS = [55, 70, 45, 65, 50, 75, 40, 60]
+
 interface TableSkeletonProps {
   rows?: number
   columns?: number
@@ -20,13 +22,13 @@ export function TableSkeleton({ rows = 5, columns = 4 }: TableSkeletonProps) {
           {Array.from({ length: rows }).map((_, i) => (
             <div key={i} className="flex h-10 items-center px-4 gap-4">
               {Array.from({ length: columns }).map((_, j) => (
-                <Skeleton 
-                  key={j} 
-                  className="h-4" 
-                  style={{ 
-                    width: `${Math.floor(Math.random() * 40) + 40}%`,
+                <Skeleton
+                  key={j}
+                  className="h-4"
+                  style={{
+                    width: `${WIDTHS[(i * columns + j) % WIDTHS.length]}%`,
                     flex: 1
-                  }} 
+                  }}
                 />
               ))}
             </div>

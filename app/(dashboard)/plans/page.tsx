@@ -170,7 +170,7 @@ export default function PlansPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {plans.map((plan) => (
             <Card key={plan.id} className={cn(
-              "neon-card overflow-hidden group transition-all duration-300",
+              "glass-panel overflow-hidden group transition-all duration-300",
               (plan.is_active ?? true) ? "hover:border-primary/40" : "opacity-60 border-destructive/20"
             )}>
               <CardContent className="p-0">

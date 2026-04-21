@@ -11,8 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
-import { getShiftDetail, closeShift, getActiveShift } from '@/lib/supabase/actions/shifts'
-import { usePreferencesStore } from '@/stores/preferences'
+import { getShiftDetail, closeShift } from '@/lib/supabase/actions/shifts'
 import { toast } from 'sonner'
 
 type Detail = Awaited<ReturnType<typeof getShiftDetail>>
@@ -37,19 +36,13 @@ const columns: ColumnDef<Payment>[] = [
 export default function ShiftDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const { selectedLocation } = usePreferencesStore()
   const [detail, setDetail] = useState<Detail | null>(null)
-  const [isMyActiveShift, setIsMyActiveShift] = useState(false)
   const [closing, setClosing] = useState(false)
   const [notes, setNotes] = useState('')
 
   const load = async () => {
     const data = await getShiftDetail(Number(id))
     setDetail(data)
-    if (selectedLocation) {
-      const active = await getActiveShift(selectedLocation.location.id)
-      setIsMyActiveShift(active?.id === Number(id))
-    }
   }
 
   useEffect(() => { load() }, [id])
@@ -109,7 +102,7 @@ export default function ShiftDetailPage() {
         <DataTable columns={columns} data={payments} />
       </div>
 
-      {isMyActiveShift && (
+      {detail.isMine && isOpen && (
         <div className="space-y-2 pt-2">
           <Separator />
           <p className="text-sm font-medium">Cerrar turno</p>

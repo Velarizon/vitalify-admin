@@ -215,7 +215,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
             <TabsContent value="membership" className="mt-6">
               {subscription ? (
                 <div className="space-y-4">
-                  <div className="neon-card rounded-lg p-5 border-l-4 border-l-primary">
+                  <div className="glass-panel rounded-lg p-5 border-l-4 border-l-primary">
                     <div className="flex items-center justify-between mb-4">
                       <div className="space-y-0.5">
                         <p className="text-hud">Plan contratado</p>

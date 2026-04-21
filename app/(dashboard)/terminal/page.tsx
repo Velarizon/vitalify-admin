@@ -70,7 +70,7 @@ export default function TerminalPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 neon-card border-none overflow-hidden">
+        <Card className="lg:col-span-2 glass-panel border-none overflow-hidden">
           <CardHeader className="border-b border-border/20 bg-secondary/10">
             <CardTitle className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-foreground/80">
               <Settings size={14} className="text-primary" />
@@ -143,7 +143,7 @@ export default function TerminalPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1 neon-card border-none bg-primary/5">
+        <Card className="lg:col-span-1 glass-panel border-none bg-primary/5">
           <CardHeader>
             <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-primary flex items-center gap-2">
               <Zap size={14} />

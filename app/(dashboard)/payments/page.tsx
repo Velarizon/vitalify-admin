@@ -9,7 +9,6 @@ import { usePreferencesStore } from '@/stores/preferences'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreditCard, Banknote, Calendar, Hash, User, Activity } from 'lucide-react'
-import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 
 type Payment = Awaited<ReturnType<typeof getPaymentsPage>>['data'][number]
 
@@ -97,20 +96,18 @@ export default function PaymentsPage() {
   const [pageSize, setPageSize] = useState(25)
   const [totalRows, setTotalRows] = useState(0)
   const [search, setSearch] = useState('')
-  const debouncedSearch = useDebouncedValue(search, 300)
-
   const loadPayments = useCallback(async () => {
     if (!selectedLocation) return
     setLoading(true)
     const result = await getPaymentsPage(selectedLocation.location.id, {
       page: pageIndex + 1,
       pageSize,
-      search: debouncedSearch,
+      search,
     })
     setPayments(result.data)
     setTotalRows(result.count)
     setLoading(false)
-  }, [debouncedSearch, pageIndex, pageSize, selectedLocation])
+  }, [search, pageIndex, pageSize, selectedLocation])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -138,8 +135,8 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      <div className="neon-card rounded-xl overflow-hidden">
-        {loading ? <TableSkeleton /> : (
+      <div className="glass-panel rounded-xl overflow-hidden">
+        {loading && payments.length === 0 ? <TableSkeleton /> : (
           <DataTable
             columns={columns}
             data={payments}

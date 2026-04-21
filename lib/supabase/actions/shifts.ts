@@ -122,6 +122,7 @@ export async function getShiftsPage(
 
 export async function getShiftDetail(shiftId: number) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const [shiftRes, paymentsRes] = await Promise.all([
     supabase.from('shifts').select('*').eq('id', shiftId).single(),
     supabase
@@ -131,5 +132,6 @@ export async function getShiftDetail(shiftId: number) {
       .order('payment_date', { ascending: true }),
   ])
   if (shiftRes.error) throw new Error(shiftRes.error.message)
-  return { shift: shiftRes.data, payments: paymentsRes.data ?? [] }
+  const isMine = !!user && shiftRes.data.opened_by === user.id
+  return { shift: shiftRes.data, payments: paymentsRes.data ?? [], isMine }
 }

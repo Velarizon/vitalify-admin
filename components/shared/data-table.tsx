@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Search } from 'lucide-react'
 
@@ -42,15 +42,24 @@ export function DataTable<TData, TValue>({
   const [localGlobalFilter, setLocalGlobalFilter] = useState('')
   const [localPageSize, setLocalPageSize] = useState(50)
   const isManualPagination = !!pagination
-  const globalFilter = search?.value ?? localGlobalFilter
+  // Local input state keeps focus stable regardless of parent re-renders
+  const [inputValue, setInputValue] = useState(search?.value ?? '')
+  const globalFilter = isManualPagination ? inputValue : localGlobalFilter
+
+  // Debounce: dispatch to parent 600ms after user stops typing
+  useEffect(() => {
+    if (!search) return
+    const id = setTimeout(() => search.onChange(inputValue), 600)
+    return () => clearTimeout(id)
+  }, [inputValue])
 
   const table = useReactTable({
     data, columns,
     state: {
       globalFilter,
-      pagination: isManualPagination
-        ? { pageIndex: pagination.pageIndex, pageSize: pagination.pageSize }
-        : undefined,
+      ...(isManualPagination && {
+        pagination: { pageIndex: pagination.pageIndex, pageSize: pagination.pageSize },
+      }),
     },
     onGlobalFilterChange: search?.onChange ?? setLocalGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -68,8 +77,8 @@ export function DataTable<TData, TValue>({
   })
 
   const totalRows = isManualPagination ? pagination.totalRows : table.getFilteredRowModel().rows.length
-  const pageIndex = isManualPagination ? pagination.pageIndex : table.getState().pagination.pageIndex
-  const currentPageSize = isManualPagination ? pagination.pageSize : table.getState().pagination.pageSize
+  const pageIndex = isManualPagination ? pagination.pageIndex : (table.getState().pagination?.pageIndex ?? 0)
+  const currentPageSize = isManualPagination ? pagination.pageSize : (table.getState().pagination?.pageSize ?? localPageSize)
   const start = pageIndex * currentPageSize + 1
   const end = Math.min((pageIndex + 1) * currentPageSize, totalRows)
 
@@ -82,7 +91,7 @@ export function DataTable<TData, TValue>({
           <Input
             placeholder={searchPlaceholder}
             value={globalFilter}
-            onChange={e => (search?.onChange ?? setLocalGlobalFilter)(e.target.value)}
+            onChange={e => isManualPagination ? setInputValue(e.target.value) : setLocalGlobalFilter(e.target.value)}
             className="h-9 w-64 text-xs pl-9 bg-background/50 border-border/40 focus:border-primary/30 transition-all"
           />
         </div>
@@ -161,7 +170,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             className="h-7 text-[9px] px-3 font-bold uppercase tracking-widest hover:bg-primary/10 transition-all"
             onClick={() => (isManualPagination ? pagination.onPageChange(pageIndex - 1) : table.previousPage())}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isManualPagination ? pageIndex === 0 : !table.getCanPreviousPage()}
           >
             Anterior
           </Button>
@@ -170,7 +179,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             className="h-7 text-[9px] px-3 font-bold uppercase tracking-widest hover:bg-primary/10 transition-all"
             onClick={() => (isManualPagination ? pagination.onPageChange(pageIndex + 1) : table.nextPage())}
-            disabled={!table.getCanNextPage()}
+            disabled={isManualPagination ? pageIndex >= pagination.pageCount - 1 : !table.getCanNextPage()}
           >
             Siguiente
           </Button>

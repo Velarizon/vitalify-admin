@@ -60,7 +60,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form Container */}
-        <div className="neon-card p-8 rounded-xl space-y-6">
+        <div className="glass-panel p-8 rounded-xl space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-hud">
