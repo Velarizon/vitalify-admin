@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const showShiftBlocker = role === 'worker' && shiftChecked && !activeShift
 
   return (
-    <div className="min-h-screen bg-[#03110f] text-[#ecfdf9]">
+    <div className="min-h-screen bg-background text-foreground">
       <Sidebar />
       
       <div 

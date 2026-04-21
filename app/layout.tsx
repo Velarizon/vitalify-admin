@@ -1,18 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Manrope } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import './globals.css'
 
-const inter = Inter({ 
+const manrope = Manrope({
   subsets: ['latin'],
-  variable: '--font-inter',
-})
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-space-grotesk',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-manrope',
 })
 
 export const metadata: Metadata = {
@@ -23,7 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} antialiased`}>
+      <body className={`${manrope.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
           <TooltipProvider>
             {children}
