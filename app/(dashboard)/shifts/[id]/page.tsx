@@ -89,6 +89,14 @@ export default function ShiftDetailPage() {
   const { shift, payments } = detail
   const isOpen = !shift.closed_at
 
+  const newSubscriptions = payments
+    .filter(p => p.payment_type === 'new_subscription')
+    .reduce((sum, p) => sum + (p.amount ?? 0), 0)
+
+  const renewals = payments
+    .filter(p => p.payment_type === 'renewal')
+    .reduce((sum, p) => sum + (p.amount ?? 0), 0)
+
   return (
     <div className="space-y-4 max-w-[1600px] mx-auto">
       <div className="flex items-center gap-2">
@@ -141,6 +149,11 @@ export default function ShiftDetailPage() {
         <MetricCard title="Tarjeta" value={fmt(shift.card_amount ?? 0)} />
         <MetricCard title="Otros" value={fmt(shift.other_amount ?? 0)} />
         <MetricCard title="Total" value={fmt(shift.total_amount ?? 0)} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-3">
+        <MetricCard title="Inscripciones Nuevas" value={fmt(newSubscriptions)} />
+        <MetricCard title="Renovaciones" value={fmt(renewals)} />
       </div>
 
       <Separator />
