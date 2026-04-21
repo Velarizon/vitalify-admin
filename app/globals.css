@@ -139,8 +139,4 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(19, 236, 164, 0.4);
   }
-
-  /* Temporary aliases — removed in Tasks 6 & 7 */
-  .neon-card { @apply glass-panel; }
-  .text-hud  { @apply text-technical; }
 }
