@@ -16,12 +16,12 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, subtitle, className, trend }: MetricCardProps) {
   return (
-    <Card className={cn('neon-card overflow-hidden group hover:border-primary/30 transition-all duration-300', className)}>
+    <Card className={cn('glass-panel border-0 overflow-hidden group transition-all duration-300 hover:scale-[1.02]', className)}>
       <CardContent className="p-4 relative">
         <div className="space-y-1">
-          <p className="text-hud tracking-widest">{title}</p>
+          <p className="text-technical text-muted-foreground">{title}</p>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-heading font-bold text-foreground group-hover:text-primary transition-colors">
+            <p className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
               {value}
             </p>
             {trend && (
@@ -39,11 +39,8 @@ export function MetricCard({ title, value, subtitle, className, trend }: MetricC
             </p>
           )}
         </div>
-        {/* Decorative corner accent */}
-        <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none overflow-hidden opacity-20 group-hover:opacity-40 transition-opacity">
-          <div className="absolute top-0 right-0 w-[2px] h-3 bg-primary" />
-          <div className="absolute top-0 right-0 w-3 h-[2px] bg-primary" />
-        </div>
+        {/* Bottom accent line */}
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
       </CardContent>
     </Card>
   )
