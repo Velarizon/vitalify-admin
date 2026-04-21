@@ -16,7 +16,7 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, subtitle, className, trend }: MetricCardProps) {
   return (
-    <Card className={cn('glass-panel border-0 overflow-hidden group transition-all duration-300 hover:scale-[1.02]', className)}>
+    <Card className={cn('glass-panel ring-0 overflow-hidden group transition-all duration-300 hover:scale-[1.02]', className)}>
       <CardContent className="p-4 relative">
         <div className="space-y-1">
           <p className="text-technical text-muted-foreground">{title}</p>
