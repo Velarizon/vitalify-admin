@@ -112,6 +112,19 @@ export default function MonthlyPaymentsPage() {
     .reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
   const other = total - cash - card
 
+  const newSubscriptions = payments
+    .filter((payment) => payment.payment_type === 'new_subscription')
+    .reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
+
+  const renewals = payments
+    .filter((payment) => payment.payment_type === 'renewal')
+    .reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
+
+  const classified = newSubscriptions + renewals
+  const retentionRate = classified > 0
+    ? ((renewals / classified) * 100).toFixed(1)
+    : '0.0'
+
   const exportCSV = () => {
     const header = 'Cliente,Plan,Monto,Método,Tipo,Fecha y hora,Responsable\n'
     const rows = payments
@@ -171,12 +184,23 @@ export default function MonthlyPaymentsPage() {
         </Button>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 mb-3">
+        <MetricCard title="Inscripciones Nuevas" value={fmt(newSubscriptions)} />
+        <MetricCard title="Renovaciones" value={fmt(renewals)} />
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Total ingresos" value={fmt(total)} />
         <MetricCard title="Efectivo" value={fmt(cash)} />
         <MetricCard title="Tarjeta" value={fmt(card)} />
         <MetricCard title="Otros" value={fmt(other)} />
       </div>
+
+      {classified > 0 && (
+        <p className="text-xs text-muted-foreground mt-2">
+          Tasa de renovación: {retentionRate}%
+        </p>
+      )}
 
       <DataTable columns={columns} data={payments} />
     </div>
