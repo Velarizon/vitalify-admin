@@ -195,6 +195,7 @@ export type Database = {
           subscription_id: number | null
           shift_id: number | null
           registered_by: string | null
+          payment_type: string | null
         }
         Insert: {
           amount?: number | null
@@ -205,6 +206,7 @@ export type Database = {
           subscription_id?: number | null
           shift_id?: number | null
           registered_by?: string | null
+          payment_type?: string | null
         }
         Update: {
           amount?: number | null
@@ -215,6 +217,7 @@ export type Database = {
           subscription_id?: number | null
           shift_id?: number | null
           registered_by?: string | null
+          payment_type?: string | null
         }
         Relationships: [
           {
