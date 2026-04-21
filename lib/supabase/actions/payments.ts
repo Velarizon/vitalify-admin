@@ -62,12 +62,41 @@ export async function createPayment(payment: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Determine payment_type based on client subscription history
+  let paymentType: 'new_subscription' | 'renewal' | null = null
+
+  if (payment.subscription_id) {
+    // Get the client_id from the subscription
+    const { data: subscription, error: subError } = await supabase
+      .from('subscriptions')
+      .select('client_id')
+      .eq('id', payment.subscription_id)
+      .single()
+
+    if (subError) throw new Error(subError.message)
+
+    if (subscription?.client_id) {
+      // Count OTHER subscriptions for this client (excluding current one)
+      const { count, error: countError } = await supabase
+        .from('subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', subscription.client_id)
+        .neq('id', payment.subscription_id)
+
+      if (countError) throw new Error(countError.message)
+
+      // If count > 0, this is a renewal. Otherwise, it's a new subscription
+      paymentType = (count ?? 0) > 0 ? 'renewal' : 'new_subscription'
+    }
+  }
+
   const { data, error } = await supabase
     .from('payments')
     .insert({
       ...payment,
       payment_date: new Date().toISOString(),
       registered_by: user?.id ?? null,
+      payment_type: paymentType,
     })
     .select()
     .single()
@@ -86,10 +115,28 @@ export async function getPaymentsByMonth(locationId: number, year: number, month
     .from('payments')
     .select(`*, subscriptions(*, clients(*), plans(*))`)
     .eq('location_id', locationId)
-    .gte('payment_date', start)
-    .lte('payment_date', end)
-    .order('payment_date', { ascending: false })
+    .gte('created_at', start)
+    .lte('created_at', end)
+    .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
-  return data ?? []
+
+  // Enrich with user data
+  const payments = data ?? []
+  const userIds = [...new Set(payments.map(p => p.registered_by).filter(Boolean))] as string[]
+
+  if (userIds.length > 0) {
+    const { data: users } = await supabase
+      .from('user_data')
+      .select('user_id, name, last_name')
+      .in('user_id', userIds)
+
+    const userMap = new Map(users?.map(u => [u.user_id, u]) ?? [])
+    return payments.map(p => ({
+      ...p,
+      user_data: p.registered_by ? userMap.get(p.registered_by) : null
+    }))
+  }
+
+  return payments.map(p => ({ ...p, user_data: null }))
 }
