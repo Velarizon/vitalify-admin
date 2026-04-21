@@ -61,6 +61,7 @@ const columns: ColumnDef<Payment>[] = [
     header: 'Método',
     cell: ({ row }) => {
       const method = row.original.payment_method
+      if (!method) return '—'
       const config = paymentMethodConfig[method] || { label: method, icon: null }
       const Icon = config.icon
       return (
@@ -86,14 +87,7 @@ const columns: ColumnDef<Payment>[] = [
   {
     accessorKey: 'created_at',
     header: 'Fecha y hora',
-    cell: ({ row }) => formatDateTime(row.original.created_at),
-  },
-  {
-    header: 'Responsable',
-    cell: ({ row }) => {
-      const user = (row.original as any).user_data
-      return user ? `${user.name} ${user.last_name}` : '—'
-    },
+    cell: ({ row }) => formatDateTime((row.original as any).created_at),
   },
 ]
 
@@ -132,18 +126,16 @@ export default function MonthlyPaymentsPage() {
     : '0.0'
 
   const exportCSV = () => {
-    const header = 'Cliente,Plan,Monto,Método,Tipo,Fecha y hora,Responsable\n'
+    const header = 'Cliente,Plan,Monto,Método,Tipo,Fecha y hora\n'
     const rows = payments
       .map((payment) => {
         const client = (payment.subscriptions as any)?.clients
         const name = client ? `${client.name} ${client.last_name}` : ''
         const plan = (payment.subscriptions as any)?.plans?.name ?? ''
-        const method = paymentMethodConfig[payment.payment_method]?.label || payment.payment_method
+        const method = payment.payment_method ? (paymentMethodConfig[payment.payment_method]?.label || payment.payment_method) : ''
         const type = getPaymentTypeLabel(payment.payment_type)
-        const date = formatDateTime(payment.created_at)
-        const user = (payment as any).user_data
-        const responsible = user ? `${user.name} ${user.last_name}` : ''
-        return `"${name}","${plan}",${payment.amount ?? 0},"${method}","${type}","${date}","${responsible}"`
+        const date = formatDateTime((payment as any).created_at)
+        return `"${name}","${plan}",${payment.amount ?? 0},"${method}","${type}","${date}"`
       })
       .join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv' })

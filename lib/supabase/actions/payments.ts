@@ -121,22 +121,5 @@ export async function getPaymentsByMonth(locationId: number, year: number, month
 
   if (error) throw new Error(error.message)
 
-  // Enrich with user data
-  const payments = data ?? []
-  const userIds = [...new Set(payments.map(p => p.registered_by).filter(Boolean))] as string[]
-
-  if (userIds.length > 0) {
-    const { data: users } = await supabase
-      .from('user_data')
-      .select('user_id, name, last_name')
-      .in('user_id', userIds)
-
-    const userMap = new Map(users?.map(u => [u.user_id, u]) ?? [])
-    return payments.map(p => ({
-      ...p,
-      user_data: p.registered_by ? userMap.get(p.registered_by) : null
-    }))
-  }
-
-  return payments.map(p => ({ ...p, user_data: null }))
+  return data ?? []
 }

@@ -43,8 +43,7 @@ export default function LoginPage() {
       setSelectedLocation(userData.user_access[0])
     }
 
-    router.push('/')
-    router.refresh()
+    window.location.href = '/'
   }
 
   return (

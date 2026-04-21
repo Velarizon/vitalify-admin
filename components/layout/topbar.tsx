@@ -47,13 +47,10 @@ export function Topbar({ activeShiftOpenedAt, hasActiveShift, onOpenDoor }: Topb
     await logout()
   }
 
-  const sidebarWidth = sidebarOpen ? 180 : 48
-
   return (
     <>
-      <header
-        className="fixed top-0 right-0 h-16 bg-background/50 backdrop-blur-xl border-b border-white/5 flex items-center px-4 gap-3 z-30 transition-all duration-200"
-        style={{ left: typeof window !== 'undefined' && window.innerWidth < 768 ? 0 : sidebarWidth }}
+      <header className="fixed top-0 right-0 left-0 md:left-14 md:data-[sidebar-open]:left-[200px] h-16 bg-background/50 backdrop-blur-xl border-b border-white/5 flex items-center px-4 gap-3 z-30 transition-all duration-300"
+        data-sidebar-open={sidebarOpen ? '' : undefined}
       >
         {/* Mobile hamburger */}
         <button onClick={toggleSidebar} className="p-1.5 rounded-md hover:bg-secondary transition-colors md:hidden">

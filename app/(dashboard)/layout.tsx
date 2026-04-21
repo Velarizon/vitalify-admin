@@ -48,9 +48,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onOpenDoor={handleOpenDoor}
         />
         
-        <main className="flex-1 pt-16 pb-12">
+        <main className="flex-1 pt-24 pb-12">
           {/* Asymmetric Breathing Room: 5% Right Margin */}
-          <div className="px-6 md:pr-[5%] lg:pr-[8%] max-w-[1600px]">
+          <div className="px-6 max-w-[1600px] mx-auto w-full">
             {children}
           </div>
         </main>
