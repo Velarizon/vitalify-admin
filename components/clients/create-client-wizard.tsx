@@ -8,11 +8,10 @@ import { WizardStepper } from './wizard-stepper'
 import { StepPersonal, PersonalData } from './step-personal'
 import { StepBiometrics, BiometricData } from './step-biometrics'
 import { StepPlanPayment, PaymentData } from './step-plan-payment'
-import { createClientRecord, createSubscription } from '@/lib/supabase/actions/clients'
-import { createPayment } from '@/lib/supabase/actions/payments'
+import { createBrowserClientRecord, createBrowserPayment, createBrowserSubscription } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
-import { getActiveShift } from '@/lib/supabase/actions/shifts'
+import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import Terminal from '@/lib/terminal'
 import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, UserPlus, ShieldCheck } from 'lucide-react'
@@ -54,14 +53,14 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
     
     try {
       // 1. Insert client
-      const client = await createClientRecord({
+      const client = await createBrowserClientRecord({
         ...personal,
         company_id: userData.company.id,
         image_url: biometric.faceImage ?? undefined,
       })
 
       // 2. Insert subscription
-      const subscription = await createSubscription({
+      const subscription = await createBrowserSubscription({
         client_id: client.id,
         plan_id: payment.plan_id,
         location_id: selectedLocation.location.id,
@@ -70,8 +69,8 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
       })
 
       // 3. Insert payment
-      const activeShift = await getActiveShift(selectedLocation.location.id)
-      await createPayment({
+      const activeShift = await getBrowserActiveShift(selectedLocation.location.id)
+      await createBrowserPayment({
         subscription_id: subscription.id,
         amount: plans.find(p => p.id === payment.plan_id)?.price ?? 0,
         payment_method: payment.payment_method,

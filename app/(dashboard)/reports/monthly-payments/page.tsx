@@ -7,11 +7,11 @@ import { MetricCard } from '@/components/shared/metric-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getPaymentsByMonth } from '@/lib/supabase/actions/payments'
+import { getBrowserPaymentsByMonth } from '@/lib/supabase/browser-catalogs'
 import { usePreferencesStore } from '@/stores/preferences'
 import { Banknote, CreditCard, ArrowLeftRight } from 'lucide-react'
 
-type Payment = Awaited<ReturnType<typeof getPaymentsByMonth>>[number]
+type Payment = Awaited<ReturnType<typeof getBrowserPaymentsByMonth>>[number]
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
@@ -100,7 +100,7 @@ export default function MonthlyPaymentsPage() {
 
   useEffect(() => {
     if (!selectedLocation) return
-    getPaymentsByMonth(selectedLocation.location.id, year, month).then(setPayments)
+    getBrowserPaymentsByMonth(selectedLocation.location.id, year, month).then(setPayments)
   }, [selectedLocation, year, month])
 
   const total = payments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)

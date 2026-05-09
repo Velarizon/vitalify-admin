@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getLocationsPage, upsertLocation } from '@/lib/supabase/actions/locations'
+import { getBrowserLocationsPage, upsertBrowserLocation } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 
-type Location = Awaited<ReturnType<typeof getLocationsPage>>['data'][number]
+type Location = Awaited<ReturnType<typeof getBrowserLocationsPage>>['data'][number]
 
 type LocationForm = {
   id?: number
@@ -44,7 +44,7 @@ export default function LocationsPage() {
     if (!userData) return
     setLoading(true)
     try {
-      const result = await getLocationsPage(userData.company.id, {
+      const result = await getBrowserLocationsPage(userData.company.id, {
         page: pageIndex + 1,
         pageSize,
         search,
@@ -89,7 +89,7 @@ export default function LocationsPage() {
 
     setSaving(true)
     try {
-      await upsertLocation({
+      await upsertBrowserLocation({
         id: form.id,
         name: form.name.trim(),
         address: form.address.trim() || undefined,

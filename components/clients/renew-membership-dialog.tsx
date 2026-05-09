@@ -5,10 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createSubscription, updateSubscription } from '@/lib/supabase/actions/clients'
-import { createPayment } from '@/lib/supabase/actions/payments'
-import { getActivePlans } from '@/lib/supabase/actions/plans'
-import { getActiveShift } from '@/lib/supabase/actions/shifts'
+import {
+  createBrowserPayment,
+  createBrowserSubscription,
+  getBrowserActivePlans,
+  updateBrowserSubscription,
+} from '@/lib/supabase/browser-catalogs'
+import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import Terminal from '@/lib/terminal'
@@ -30,7 +33,7 @@ interface Props {
       plan_id?: number | null
       start_date?: string | null
       end_date: string | null
-    }[]
+    }[] | null
   } | null
   open: boolean
   onClose: () => void
@@ -57,7 +60,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
 
   useEffect(() => {
     if (open && userData) {
-      getActivePlans(userData.company.id).then(loadedPlans => {
+      getBrowserActivePlans(userData.company.id).then(loadedPlans => {
         setPlans(loadedPlans)
         // Pre-select current plan if client has one
         const currentPlanId = client?.subscriptions?.[0]?.plan_id
@@ -107,15 +110,15 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
       const planDuration = selectedPlan.duration ?? '1 month'
       const planPrice = selectedPlan.price ?? 0
       const endDateValue = format(calculateEndDate(planDuration, getRenewalBaseDate()), 'yyyy-MM-dd')
-      const activeShift = await getActiveShift(selectedLocation.location.id)
+      const activeShift = await getBrowserActiveShift(selectedLocation.location.id)
 
       const subscription = currentSubscription
-        ? await updateSubscription(currentSubscription.id, {
+        ? await updateBrowserSubscription(currentSubscription.id, {
           plan_id: selectedPlan.id,
           location_id: selectedLocation.location.id,
           end_date: endDateValue,
         })
-        : await createSubscription({
+        : await createBrowserSubscription({
           client_id: client.id,
           plan_id: selectedPlan.id,
           location_id: selectedLocation.location.id,
@@ -123,7 +126,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
           end_date: endDateValue,
         })
 
-      await createPayment({
+      await createBrowserPayment({
         subscription_id: subscription.id,
         amount: planPrice,
         payment_method: paymentMethod,

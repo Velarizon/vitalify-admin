@@ -6,8 +6,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { getClientsPage } from '@/lib/supabase/actions/clients'
-import { getActivePlans } from '@/lib/supabase/actions/plans'
+import { getBrowserActivePlans, getBrowserClientsPage } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
@@ -16,7 +15,7 @@ import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
 
-type Client = Awaited<ReturnType<typeof getClientsPage>>['data'][number]
+type Client = Awaited<ReturnType<typeof getBrowserClientsPage>>['data'][number]
 
 function statusBadge(client: Client) {
   const sub = client.subscriptions?.[0]
@@ -59,7 +58,7 @@ export default function ClientsPage() {
     if (!userData) return
     setLoading(true)
     try {
-      const clientsResult = await getClientsPage(userData.company.id, {
+      const clientsResult = await getBrowserClientsPage(userData.company.id, {
         page: pageIndex + 1,
         pageSize,
         search,
@@ -82,7 +81,7 @@ export default function ClientsPage() {
   useEffect(() => {
     if (!userData) return
 
-    void getActivePlans(userData.company.id).then((pData) => {
+    void getBrowserActivePlans(userData.company.id).then((pData) => {
       setPlans(pData.map(p => ({
         id: p.id,
         name: p.name ?? 'Sin nombre',

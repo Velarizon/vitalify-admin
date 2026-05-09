@@ -6,7 +6,8 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getShiftsPage, openShift, getActiveShift } from '@/lib/supabase/actions/shifts'
+import { getBrowserActiveShift, openBrowserShift } from '@/lib/supabase/browser-shifts'
+import { getBrowserShiftsPage } from '@/lib/supabase/browser-catalogs'
 import { usePreferencesStore } from '@/stores/preferences'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -14,7 +15,7 @@ import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { ArrowUpRight } from 'lucide-react'
 import { formatHermosilloDateTime } from '@/lib/dates'
 
-type Shift = Awaited<ReturnType<typeof getShiftsPage>>['data'][number]
+type Shift = Awaited<ReturnType<typeof getBrowserShiftsPage>>['data'][number]
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
@@ -74,14 +75,14 @@ export default function ShiftsPage() {
 
   const load = useCallback(async () => {
     if (!selectedLocation) return
-    const result = await getShiftsPage(selectedLocation.location.id, {
+    const result = await getBrowserShiftsPage(selectedLocation.location.id, {
       page: pageIndex + 1,
       pageSize,
       search: debouncedSearch,
     })
     setShifts(result.data)
     setTotalRows(result.count)
-    const active = await getActiveShift(selectedLocation.location.id)
+    const active = await getBrowserActiveShift(selectedLocation.location.id)
     setHasActive(!!active)
   }, [debouncedSearch, pageIndex, pageSize, selectedLocation])
 
@@ -97,7 +98,7 @@ export default function ShiftsPage() {
   const handleOpen = async () => {
     if (!selectedLocation) return
     setOpening(true)
-    const { error } = await openShift(selectedLocation.location.id)
+    const { error } = await openBrowserShift(selectedLocation.location.id)
     if (error) toast.error(error)
     else toast.success('Turno abierto')
     await load()

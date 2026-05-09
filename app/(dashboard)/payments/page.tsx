@@ -4,13 +4,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
-import { getPaymentsPage } from '@/lib/supabase/actions/payments'
+import { getBrowserPaymentsPage } from '@/lib/supabase/browser-catalogs'
 import { usePreferencesStore } from '@/stores/preferences'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreditCard, Banknote, Calendar, Hash, User, Activity } from 'lucide-react'
 
-type Payment = Awaited<ReturnType<typeof getPaymentsPage>>['data'][number]
+type Payment = Awaited<ReturnType<typeof getBrowserPaymentsPage>>['data'][number]
 
 const methodLabel: Record<string, { label: string, icon: any }> = {
   cash: { label: 'Efectivo', icon: Banknote },
@@ -99,7 +99,7 @@ export default function PaymentsPage() {
   const loadPayments = useCallback(async () => {
     if (!selectedLocation) return
     setLoading(true)
-    const result = await getPaymentsPage(selectedLocation.location.id, {
+    const result = await getBrowserPaymentsPage(selectedLocation.location.id, {
       page: pageIndex + 1,
       pageSize,
       search,

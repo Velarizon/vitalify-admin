@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { updateClient } from '@/lib/supabase/actions/clients'
+import { updateBrowserClient } from '@/lib/supabase/browser-catalogs'
 import { toast } from 'sonner'
 import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -32,7 +32,7 @@ interface Props {
     phone_number: string | null
     date_of_birth: string | null
     gender: string | null
-    subscriptions?: Subscription[]
+    subscriptions?: Subscription[] | null
   } | null
   open: boolean
   onClose: () => void
@@ -89,7 +89,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
     if (!client) return
     setLoading(true)
     try {
-      await updateClient(client.id, formData)
+      await updateBrowserClient(client.id, formData)
       toast.success('Cliente actualizado correctamente')
       onSuccess()
       onClose()
@@ -124,7 +124,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
     const toastId = toast.loading('Sincronizando biométricos...')
 
     try {
-      await updateClient(client.id, { image_url: faceImage })
+      await updateBrowserClient(client.id, { image_url: faceImage })
 
       const employeeNo = String(client.id)
       if (terminalConfigured) {

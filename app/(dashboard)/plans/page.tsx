@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { getPlansPage, togglePlanActive, upsertPlan } from '@/lib/supabase/actions/plans'
+import { getBrowserPlansPage, toggleBrowserPlanActive, upsertBrowserPlan } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
 import { Plus, Pencil, Clock, CreditCard, ShieldCheck, Zap } from 'lucide-react'
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 
-type Plan = Awaited<ReturnType<typeof getPlansPage>>['data'][number] & {
+type Plan = Awaited<ReturnType<typeof getBrowserPlansPage>>['data'][number] & {
   is_active?: boolean | null
 }
 
@@ -67,7 +67,7 @@ export default function PlansPage() {
     if (!userData) return
     setLoading(true)
     try {
-      const result = await getPlansPage(userData.company.id, {
+      const result = await getBrowserPlansPage(userData.company.id, {
         page: pageIndex + 1,
         pageSize,
         search: debouncedSearch,
@@ -114,7 +114,7 @@ export default function PlansPage() {
 
     setSaving(true)
     try {
-      await upsertPlan({
+      await upsertBrowserPlan({
         id: form.id,
         name: form.name.trim(),
         duration: form.duration,
@@ -138,7 +138,7 @@ export default function PlansPage() {
   const handleToggle = async (plan: Plan, nextChecked: boolean) => {
     setTogglingId(plan.id)
     try {
-      await togglePlanActive(plan.id, nextChecked)
+      await toggleBrowserPlanActive(plan.id, nextChecked)
       setPlans((current) =>
         current.map((item) =>
           item.id === plan.id ? { ...item, is_active: nextChecked } : item

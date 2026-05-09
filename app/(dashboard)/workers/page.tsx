@@ -11,15 +11,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getLocations } from '@/lib/supabase/actions/locations'
-import { deactivateWorker, getWorkersPage, inviteWorker, updateWorker } from '@/lib/supabase/actions/workers'
+import { getBrowserLocations, getBrowserWorkersPage } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore, type UserRole } from '@/stores/auth'
 import { toast } from 'sonner'
 import { UserPlus, Pencil, ShieldAlert, ShieldCheck, MapPin, Mail } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 
-type Worker = Awaited<ReturnType<typeof getWorkersPage>>['data'][number]
-type Location = Awaited<ReturnType<typeof getLocations>>[number]
+type Worker = Awaited<ReturnType<typeof getBrowserWorkersPage>>['data'][number]
+type Location = Awaited<ReturnType<typeof getBrowserLocations>>[number]
 
 type InviteForm = {
   name: string
@@ -62,6 +61,16 @@ const roleOptions = [
   { value: 'admin', label: roleLabels.admin },
 ]
 
+async function postWorkerAction(payload: Record<string, unknown>) {
+  const response = await fetch('/api/workers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const result = await response.json()
+  return result as { error: string | null }
+}
+
 function getWorkerName(worker: Worker) {
   return worker.displayName ?? ([worker.name, worker.last_name].filter(Boolean).join(' ') || null)
 }
@@ -86,7 +95,7 @@ export default function WorkersPage() {
     if (!userData) return
     setLoading(true)
     try {
-      const workerResult = await getWorkersPage(userData.company.id, {
+      const workerResult = await getBrowserWorkersPage(userData.company.id, {
         page: pageIndex + 1,
         pageSize,
         search,
@@ -110,7 +119,7 @@ export default function WorkersPage() {
   useEffect(() => {
     if (!userData) return
 
-    void getLocations(userData.company.id).then((locationRows) => {
+    void getBrowserLocations(userData.company.id).then((locationRows) => {
       setLocations(locationRows)
       setInviteForm((current) => ({
         ...current,
@@ -149,16 +158,17 @@ export default function WorkersPage() {
 
     setSavingInvite(true)
     try {
-      const { error } = await inviteWorker(
-        inviteForm.email.trim(),
-        userData.company.id,
-        Number(inviteForm.location_id),
-        inviteForm.role,
-        {
+      const { error } = await postWorkerAction({
+        action: 'invite',
+        email: inviteForm.email.trim(),
+        companyId: userData.company.id,
+        locationId: Number(inviteForm.location_id),
+        role: inviteForm.role,
+        profile: {
           name: inviteForm.name,
           last_name: inviteForm.last_name,
-        }
-      )
+        },
+      })
       if (error) {
         toast.error(error)
         return
@@ -179,11 +189,13 @@ export default function WorkersPage() {
 
     setSavingEdit(true)
     try {
-      const { error } = await updateWorker(editForm.id, {
+      const { error } = await postWorkerAction({
+        action: 'update',
+        id: editForm.id,
         name: editForm.name,
-        last_name: editForm.last_name,
+        lastName: editForm.last_name,
         role: editForm.role,
-        location_id: Number(editForm.location_id),
+        locationId: Number(editForm.location_id),
       })
       if (error) {
         toast.error(error)
@@ -205,7 +217,7 @@ export default function WorkersPage() {
 
     setDeactivatingId(worker.id)
     try {
-      const { error } = await deactivateWorker(worker.id)
+      const { error } = await postWorkerAction({ action: 'deactivate', id: worker.id })
       if (error) {
         toast.error(error)
         return

@@ -12,12 +12,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
-import { getShiftDetail, closeShift } from '@/lib/supabase/actions/shifts'
+import { closeBrowserShift, getBrowserShiftDetail } from '@/lib/supabase/browser-catalogs'
 import { toast } from 'sonner'
 import { AlertTriangle, CheckCircle, Clock, FileText, LockKeyhole, ReceiptText, UserRound } from 'lucide-react'
 import { formatHermosilloDateTime, formatHermosilloTime } from '@/lib/dates'
 
-type Detail = Awaited<ReturnType<typeof getShiftDetail>>
+type Detail = Awaited<ReturnType<typeof getBrowserShiftDetail>>
 type Payment = Detail['payments'][number]
 
 const fmt = (n: number) =>
@@ -59,7 +59,7 @@ export default function ShiftDetailPage() {
   const [notes, setNotes] = useState('')
 
   const load = useCallback(async () => {
-    const data = await getShiftDetail(Number(id))
+    const data = await getBrowserShiftDetail(Number(id))
     setDetail(data)
   }, [id])
 
@@ -72,7 +72,7 @@ export default function ShiftDetailPage() {
 
   const handleClose = async () => {
     setClosing(true)
-    const { error } = await closeShift(Number(id), notes || undefined)
+    const { error } = await closeBrowserShift(Number(id), notes || undefined)
     if (error) { toast.error(error); setClosing(false); return }
     toast.success('Turno cerrado correctamente')
     setConfirmCloseOpen(false)

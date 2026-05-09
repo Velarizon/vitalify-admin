@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createClientRecord, createSubscription } from '@/lib/supabase/actions/clients'
+import { createBrowserClientRecord, createBrowserSubscription } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { toast } from 'sonner'
@@ -33,8 +33,8 @@ export function CreateClientSheet({ open, onClose, plans }: Props) {
     if (!userData || !selectedLocation) return
     setLoading(true)
     try {
-      const client = await createClientRecord({ ...step1, company_id: userData.company.id })
-      await createSubscription({
+      const client = await createBrowserClientRecord({ ...step1, company_id: userData.company.id })
+      await createBrowserSubscription({
         client_id: client.id,
         plan_id: step3.plan_id,
         location_id: selectedLocation.location.id,
