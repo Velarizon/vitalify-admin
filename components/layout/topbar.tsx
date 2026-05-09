@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
-import { logout } from '@/lib/supabase/actions/auth'
-import { getActiveShiftSummary } from '@/lib/supabase/actions/shifts'
+import { createClient } from '@/lib/supabase/client'
+import { getBrowserActiveShiftSummary } from '@/lib/supabase/browser-shifts'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/layout/theme-toggle'
@@ -20,7 +20,7 @@ interface TopbarProps {
   onOpenDoor: () => void
 }
 
-type ActiveShiftSummary = Awaited<ReturnType<typeof getActiveShiftSummary>>
+type ActiveShiftSummary = Awaited<ReturnType<typeof getBrowserActiveShiftSummary>>
 
 const fmtCurrency = (value: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)
@@ -90,7 +90,7 @@ export function Topbar({ activeShiftId, activeShiftOpenedAt, hasActiveShift, onO
 
     setLoadingSummary(true)
     try {
-      const summary = await getActiveShiftSummary(selectedLocation.location.id)
+      const summary = await getBrowserActiveShiftSummary(selectedLocation.location.id)
       setShiftSummary(summary)
     } finally {
       setLoadingSummary(false)
@@ -119,7 +119,8 @@ export function Topbar({ activeShiftId, activeShiftOpenedAt, hasActiveShift, onO
       return
     }
     clearUserData()
-    await logout()
+    await createClient().auth.signOut()
+    window.location.href = '/login'
   }
 
   return (

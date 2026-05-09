@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { MetricCard } from '@/components/shared/metric-card'
-import { getDashboardData } from '@/lib/supabase/actions/dashboard'
+import { getBrowserDashboardData } from '@/lib/supabase/browser-dashboard'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,11 +18,11 @@ const fmt = (n: number) =>
 export default function DashboardPage() {
   const { userData, role } = useAuthStore()
   const { selectedLocation } = usePreferencesStore()
-  const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null)
+  const [data, setData] = useState<Awaited<ReturnType<typeof getBrowserDashboardData>> | null>(null)
 
   useEffect(() => {
     if (!userData || !selectedLocation || role !== 'admin') return
-    getDashboardData(userData.company.id, selectedLocation.location.id).then(setData)
+    getBrowserDashboardData(userData.company.id, selectedLocation.location.id).then(setData)
   }, [role, userData, selectedLocation])
 
   if (role === 'worker') {

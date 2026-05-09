@@ -6,7 +6,7 @@ import { Topbar } from '@/components/layout/topbar'
 import { ShiftBlocker } from '@/components/layout/shift-blocker'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
-import { getActiveShift } from '@/lib/supabase/actions/shifts'
+import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { cn } from '@/lib/utils'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const refreshActiveShift = useCallback(async () => {
     if (!selectedLocation) return
-    const shift = await getActiveShift(selectedLocation.location.id)
+    const shift = await getBrowserActiveShift(selectedLocation.location.id)
     setActiveShift(shift)
     setShiftChecked(true)
   }, [selectedLocation])

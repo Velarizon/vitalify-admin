@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { openShift } from '@/lib/supabase/actions/shifts'
-import { logout } from '@/lib/supabase/actions/auth'
+import { createClient } from '@/lib/supabase/client'
+import { openBrowserShift } from '@/lib/supabase/browser-shifts'
 import { useAuthStore } from '@/stores/auth'
 import { LogOut, Timer } from 'lucide-react'
 
@@ -21,7 +21,7 @@ export function ShiftBlocker({ locationId, onShiftOpened }: ShiftBlockerProps) {
   const handleOpenShift = async () => {
     setLoading(true)
     setError(null)
-    const { error } = await openShift(locationId)
+    const { error } = await openBrowserShift(locationId)
     if (error) {
       setError(error)
       setLoading(false)
@@ -33,7 +33,8 @@ export function ShiftBlocker({ locationId, onShiftOpened }: ShiftBlockerProps) {
   const handleLogout = async () => {
     setLoggingOut(true)
     clearUserData()
-    await logout()
+    await createClient().auth.signOut()
+    window.location.href = '/login'
   }
 
   return (
