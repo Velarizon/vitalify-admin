@@ -1,4 +1,41 @@
 // lib/terminal.ts
+export interface FingerprintCapture {
+  fingerPrintData: string
+  fingerPrintQuality?: number
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const findValue = (value: unknown, keys: string[]): unknown => {
+  if (!isRecord(value)) return undefined
+
+  for (const key of keys) {
+    if (value[key] !== undefined) return value[key]
+  }
+
+  for (const child of Object.values(value)) {
+    const result = findValue(child, keys)
+    if (result !== undefined) return result
+  }
+
+  return undefined
+}
+
+const normalizeFingerprintCapture = (value: unknown): FingerprintCapture => {
+  const fingerPrintData = findValue(value, ['fingerPrintData', 'fingerprintData', 'fingerData'])
+  const fingerPrintQuality = findValue(value, ['fingerPrintQuality', 'fingerprintQuality', 'quality'])
+
+  if (typeof fingerPrintData !== 'string' || !fingerPrintData.trim()) {
+    throw new Error('No se recibió información válida de la huella.')
+  }
+
+  return {
+    fingerPrintData,
+    fingerPrintQuality: fingerPrintQuality === undefined ? undefined : Number(fingerPrintQuality),
+  }
+}
+
 class Terminal {
   static get url() {
     if (typeof window === 'undefined') return 'http://localhost:8000'
@@ -29,7 +66,7 @@ class Terminal {
       body: JSON.stringify(this.networkData),
     })
     const data = await response.json()
-    return data.CaptureFingerPrint
+    return normalizeFingerprintCapture(data)
   }
 
   static async createPerson(req: {
@@ -49,6 +86,10 @@ class Terminal {
   }
 
   static async setUpFingerPrint(id: string, fingerprint: string) {
+    if (!fingerprint?.trim()) {
+      throw new Error('Captura la huella antes de sincronizarla con el terminal.')
+    }
+
     const response = await fetch(`${this.url}/hikvision/setup-fingerprint`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -13,7 +13,7 @@ import { updateClient } from '@/lib/supabase/actions/clients'
 import { toast } from 'sonner'
 import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import Terminal from '@/lib/terminal'
+import Terminal, { FingerprintCapture } from '@/lib/terminal'
 
 interface Subscription {
   id: number
@@ -37,11 +37,6 @@ interface Props {
   open: boolean
   onClose: () => void
   onSuccess: () => void
-}
-
-interface FingerprintCapture {
-  fingerPrintData?: string
-  fingerPrintQuality?: number
 }
 
 export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {

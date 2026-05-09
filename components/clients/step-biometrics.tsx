@@ -5,11 +5,11 @@ import { useState, useRef, useCallback } from 'react'
 import Webcam from 'react-webcam'
 import { Button } from '@/components/ui/button'
 import { Camera, Fingerprint, RotateCcw } from 'lucide-react'
-import Terminal from '@/lib/terminal'
+import Terminal, { FingerprintCapture } from '@/lib/terminal'
 
 export interface BiometricData {
   faceImage: string | null
-  fingerprintData: any | null
+  fingerprintData: FingerprintCapture | null
 }
 
 interface Props {
