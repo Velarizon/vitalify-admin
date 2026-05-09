@@ -28,6 +28,8 @@ const STEPS = ['IDENTIDAD', 'BIOMETRÍA', 'MEMBRESÍA']
 const emptyPersonal: PersonalData = { name: '', last_name: '', email: '', phone_number: '', date_of_birth: '', gender: 'M' }
 const emptyBiometric: BiometricData = { faceImage: null, fingerprintData: null }
 const emptyPayment: PaymentData = { plan_id: 0, payment_method: '', start_date: '', end_date: '', receipt_image: null }
+const terminalDate = (date: string, time: 'start' | 'end') =>
+  `${date}T${time === 'start' ? '00:00:00' : '23:59:59'}.000Z`
 
 export function CreateClientWizard({ open, onClose, plans }: Props) {
   const { userData } = useAuthStore()
@@ -81,11 +83,12 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
       try {
         const employeeNo = String(client.id)
         await Terminal.createPerson({
-          name: `${personal.name} ${personal.last_name}`,
-          employeeNo,
-          userType: 'normal',
-          beginTime: payment.start_date + 'T00:00:00',
-          endTime: payment.end_date + 'T23:59:59',
+          user_id: employeeNo,
+          name: personal.name,
+          last_name: personal.last_name,
+          gender: personal.gender,
+          start_date: terminalDate(payment.start_date, 'start'),
+          end_date: terminalDate(payment.end_date, 'end'),
         })
         if (biometric.faceImage) await Terminal.setUpFaceImage(employeeNo, biometric.faceImage)
         if (biometric.fingerprintData) await Terminal.setUpFingerPrint(employeeNo, biometric.fingerprintData.fingerPrintData)

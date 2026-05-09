@@ -33,11 +33,12 @@ class Terminal {
   }
 
   static async createPerson(req: {
+    user_id: string
     name: string
-    employeeNo: string
-    userType: string
-    beginTime: string
-    endTime: string
+    last_name: string
+    gender: string
+    start_date: string
+    end_date: string
   }) {
     const response = await fetch(`${this.url}/hikvision/create-user`, {
       method: 'POST',
@@ -65,7 +66,7 @@ class Terminal {
     return response.json()
   }
 
-  static async updateEndDate(req: { employeeNo: string; endTime: string }) {
+  static async updateEndDate(req: { user_id: string; end_date: string }) {
     const response = await fetch(`${this.url}/hikvision/update-end-date`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
