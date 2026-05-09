@@ -1,16 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { login, getUserData } from '@/lib/supabase/actions/auth'
-import { useAuthStore } from '@/stores/auth'
+import { createClient } from '@/lib/supabase/client'
+import { useAuthStore, UserData, UserRole } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 
 export default function LoginPage() {
-  const router = useRouter()
   const { setUserData } = useAuthStore()
   const { setSelectedLocation } = usePreferencesStore()
   const [email, setEmail] = useState('')
@@ -24,18 +22,33 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error: loginError } = await login(email, password)
+    const supabase = createClient()
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password })
     if (loginError) {
-      setError(loginError)
+      setError(loginError.message)
       setLoading(false)
       return
     }
 
-    const { userData, role } = await getUserData()
-    if (!userData || !role) {
+    const { data: accessRows, error: accessError } = await supabase
+      .from('user_access')
+      .select('role, location:locations(*), company:companies(*)')
+      .eq('user_id', loginData.user.id)
+
+    if (accessError || !accessRows || accessRows.length === 0) {
       setError('No se pudo obtener la información del usuario')
       setLoading(false)
       return
+    }
+
+    const firstAccess = accessRows[0] as { role: UserRole; company: UserData['company'] }
+    const role = firstAccess.role
+    const userData: UserData = {
+      company: firstAccess.company,
+      user_access: accessRows.map((access) => ({
+        location: access.location as UserData['user_access'][number]['location'],
+        role: access.role as UserRole,
+      })),
     }
 
     setUserData(userData, role)
