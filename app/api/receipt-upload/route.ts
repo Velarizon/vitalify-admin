@@ -1,6 +1,8 @@
 // app/api/receipt-upload/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
+export const runtime = 'edge'
+
 // In-memory store for receipt images (keyed by token)
 const receipts = new Map<string, string>()
 
