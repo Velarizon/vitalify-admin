@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
-import { getUserData } from '@/lib/supabase/actions/auth'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, UserData, UserRole } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 
 export default function SetPasswordPage() {
@@ -75,11 +74,29 @@ export default function SetPasswordPage() {
       return
     }
 
-    const { userData, role } = await getUserData()
-    if (userData && role) {
-      setUserData(userData, role)
-      if (userData.user_access.length > 0) {
-        setSelectedLocation(userData.user_access[0])
+    const { data: userResult } = await supabase.auth.getUser()
+    const userId = userResult.user?.id
+    if (userId) {
+      const { data: accessRows } = await supabase
+        .from('user_access')
+        .select('role, location:locations(*), company:companies(*)')
+        .eq('user_id', userId)
+
+      if (accessRows && accessRows.length > 0) {
+        const firstAccess = accessRows[0] as { role: UserRole; company: UserData['company'] }
+        const role = firstAccess.role
+        const userData: UserData = {
+          company: firstAccess.company,
+          user_access: accessRows.map((access) => ({
+            location: access.location as UserData['user_access'][number]['location'],
+            role: access.role as UserRole,
+          })),
+        }
+
+        setUserData(userData, role)
+        if (userData.user_access.length > 0) {
+          setSelectedLocation(userData.user_access[0])
+        }
       }
     }
 
