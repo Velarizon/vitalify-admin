@@ -22,6 +22,8 @@ type Worker = Awaited<ReturnType<typeof getWorkersPage>>['data'][number]
 type Location = Awaited<ReturnType<typeof getLocations>>[number]
 
 type InviteForm = {
+  name: string
+  last_name: string
   email: string
   role: UserRole
   location_id: string
@@ -29,19 +31,39 @@ type InviteForm = {
 
 type EditForm = {
   id?: number
+  name: string
+  last_name: string
   role: UserRole
   location_id: string
 }
 
 const emptyInviteForm: InviteForm = {
+  name: '',
+  last_name: '',
   email: '',
   role: 'worker',
   location_id: '',
 }
 
 const emptyEditForm: EditForm = {
+  name: '',
+  last_name: '',
   role: 'worker',
   location_id: '',
+}
+
+const roleLabels: Record<UserRole, string> = {
+  admin: 'Administrador',
+  worker: 'Trabajador',
+}
+
+const roleOptions = [
+  { value: 'worker', label: roleLabels.worker },
+  { value: 'admin', label: roleLabels.admin },
+]
+
+function getWorkerName(worker: Worker) {
+  return worker.displayName ?? ([worker.name, worker.last_name].filter(Boolean).join(' ') || null)
 }
 
 export default function WorkersPage() {
@@ -101,6 +123,8 @@ export default function WorkersPage() {
 
   const openInvite = () => {
     setInviteForm({
+      name: '',
+      last_name: '',
       email: '',
       role: 'worker',
       location_id: String(locations[0]?.id ?? ''),
@@ -111,6 +135,8 @@ export default function WorkersPage() {
   const openEdit = (worker: Worker) => {
     setEditForm({
       id: worker.id,
+      name: worker.name ?? '',
+      last_name: worker.last_name ?? '',
       role: (worker.role === 'admin' ? 'admin' : 'worker') as UserRole,
       location_id: String(worker.location_id ?? worker.location?.id ?? ''),
     })
@@ -127,7 +153,11 @@ export default function WorkersPage() {
         inviteForm.email.trim(),
         userData.company.id,
         Number(inviteForm.location_id),
-        inviteForm.role
+        inviteForm.role,
+        {
+          name: inviteForm.name,
+          last_name: inviteForm.last_name,
+        }
       )
       if (error) {
         toast.error(error)
@@ -150,6 +180,8 @@ export default function WorkersPage() {
     setSavingEdit(true)
     try {
       const { error } = await updateWorker(editForm.id, {
+        name: editForm.name,
+        last_name: editForm.last_name,
         role: editForm.role,
         location_id: Number(editForm.location_id),
       })
@@ -168,7 +200,7 @@ export default function WorkersPage() {
   }
 
   const handleDeactivate = async (worker: Worker) => {
-    const confirmed = window.confirm(`¿Desactivar a ${worker.email ?? worker.user_id ?? 'este trabajador'}?`)
+    const confirmed = window.confirm(`¿Desactivar a ${getWorkerName(worker) ?? worker.email ?? worker.user_id ?? 'este trabajador'}?`)
     if (!confirmed) return
 
     setDeactivatingId(worker.id)
@@ -190,8 +222,9 @@ export default function WorkersPage() {
     {
       header: 'Trabajador',
       cell: ({ row }) => {
+        const workerName = getWorkerName(row.original)
         const email = row.original.email ?? ''
-        const initials = email.slice(0, 2).toUpperCase() || 'W'
+        const initials = (workerName ?? email).slice(0, 2).toUpperCase() || 'W'
         return (
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 border border-border/50">
@@ -200,9 +233,11 @@ export default function WorkersPage() {
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-foreground">{email || 'ID: ' + row.original.user_id?.slice(0, 8)}</span>
+              <span className="text-xs font-bold text-foreground">
+                {workerName ?? (email || 'ID: ' + row.original.user_id?.slice(0, 8))}
+              </span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                <Mail className="h-2.5 w-2.5" /> Corporativo
+                <Mail className="h-2.5 w-2.5" /> {workerName && email ? email : 'Corporativo'}
               </span>
             </div>
           </div>
@@ -221,7 +256,7 @@ export default function WorkersPage() {
               <ShieldAlert className="h-3 w-3 text-muted-foreground" />
             )}
             <span className={isAdmin ? "text-primary text-[10px] font-bold uppercase" : "text-muted-foreground text-[10px] font-medium uppercase"}>
-              {row.original.role}
+              {roleLabels[isAdmin ? 'admin' : 'worker']}
             </span>
           </div>
         )
@@ -309,6 +344,30 @@ export default function WorkersPage() {
           </DialogHeader>
 
           <form className="space-y-4 pt-4" onSubmit={handleInvite}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="worker-name" className="text-technical">Nombre</Label>
+                <Input
+                  id="worker-name"
+                  value={inviteForm.name}
+                  onChange={(event) => setInviteForm((current) => ({ ...current, name: event.target.value }))}
+                  required
+                  className="bg-background/50 border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="worker-last-name" className="text-technical">Apellido</Label>
+                <Input
+                  id="worker-last-name"
+                  value={inviteForm.last_name}
+                  onChange={(event) => setInviteForm((current) => ({ ...current, last_name: event.target.value }))}
+                  required
+                  className="bg-background/50 border-border"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="worker-email" className="text-technical">Email Corporativo</Label>
               <Input
@@ -329,13 +388,17 @@ export default function WorkersPage() {
                   onValueChange={(value) =>
                     setInviteForm((current) => ({ ...current, role: value as UserRole }))
                   }
+                  items={roleOptions}
                 >
                   <SelectTrigger className="w-full bg-background/50 border-border">
-                    <SelectValue />
+                    <SelectValue placeholder="Rol" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="worker">Worker</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    {roleOptions.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -382,19 +445,47 @@ export default function WorkersPage() {
           <form className="space-y-4 pt-4" onSubmit={handleEdit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
+                <Label htmlFor="edit-worker-name" className="text-technical">Nombre</Label>
+                <Input
+                  id="edit-worker-name"
+                  value={editForm.name}
+                  onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))}
+                  required
+                  className="bg-background/50 border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-worker-last-name" className="text-technical">Apellido</Label>
+                <Input
+                  id="edit-worker-last-name"
+                  value={editForm.last_name}
+                  onChange={(event) => setEditForm((current) => ({ ...current, last_name: event.target.value }))}
+                  required
+                  className="bg-background/50 border-border"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
                 <Label className="text-technical">Rol de Acceso</Label>
                 <Select
                   value={editForm.role}
                   onValueChange={(value) =>
                     setEditForm((current) => ({ ...current, role: value as UserRole }))
                   }
+                  items={roleOptions}
                 >
                   <SelectTrigger className="w-full bg-background/50 border-border">
-                    <SelectValue />
+                    <SelectValue placeholder="Rol" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="worker">Worker</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    {roleOptions.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

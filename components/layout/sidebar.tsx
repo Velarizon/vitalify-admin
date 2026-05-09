@@ -57,12 +57,12 @@ export function Sidebar() {
           sidebarOpen ? 'gap-3 px-3' : 'justify-center',
           isActive
             ? 'glass-panel text-primary'
-            : 'text-white/60 hover:text-white hover:bg-white/5'
+            : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
         )}
       >
         <Icon size={16} className={cn(
           'flex-shrink-0 shrink-0 transition-transform duration-200 group-hover:scale-110',
-          isActive ? 'text-primary' : 'text-white/40'
+          isActive ? 'text-primary' : 'text-sidebar-foreground/40'
         )} />
         {sidebarOpen && (
           <span className="truncate">{item.label}</span>
@@ -97,14 +97,14 @@ export function Sidebar() {
       )}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-full bg-sidebar border-r border-white/5 shadow-2xl flex flex-col z-40 transition-all duration-300 ease-in-out overflow-hidden',
+          'fixed left-0 top-0 h-full bg-sidebar border-r border-sidebar-border shadow-2xl flex flex-col z-40 transition-all duration-300 ease-in-out overflow-hidden',
           sidebarOpen ? 'w-[200px]' : 'w-14',
           !sidebarOpen && 'max-md:-translate-x-full'
         )}
       >
         {/* Header / Logo Section */}
         <div className={cn(
-          'flex items-center h-16 px-4 mb-4 border-b border-white/5',
+          'flex items-center h-16 px-4 mb-4 border-b border-sidebar-border',
           sidebarOpen ? 'justify-between' : 'justify-center'
         )}>
           {sidebarOpen && (
@@ -112,7 +112,7 @@ export function Sidebar() {
               <div className="h-6 w-6 rounded-sm bg-primary flex items-center justify-center shadow-neon">
                 <span className="text-[10px] font-black text-primary-foreground italic">V</span>
               </div>
-              <span className="font-black text-xs uppercase tracking-[0.3em] text-foreground">
+              <span className="font-black text-xs uppercase tracking-[0.3em] text-sidebar-foreground">
                 Vitalify
               </span>
             </div>
@@ -154,7 +154,7 @@ export function Sidebar() {
 
         {/* Footer */}
         {sidebarOpen && (
-          <div className="p-4 border-t border-white/5 space-y-3">
+          <div className="p-4 border-t border-sidebar-border space-y-3">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-primary glow-primary animate-pulse" />
               <span className="text-[8px] font-bold uppercase tracking-widest text-primary/60">Servidor Activo</span>

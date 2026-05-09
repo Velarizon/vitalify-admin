@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${manrope.variable} ${manrope.className} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <TooltipProvider>
             {children}
           </TooltipProvider>

@@ -1,9 +1,68 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { Database } from '@/types/supabase'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { computeShiftTotals } from '@/lib/shifts'
 import { escapeForLike, normalizePagination, type PaginatedResult, type PaginationParams } from '@/lib/supabase/actions/pagination'
+
+export interface ShiftResponsible {
+  id: string
+  name: string | null
+  last_name: string | null
+  displayName: string | null
+  email: string | null
+}
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !serviceRoleKey) {
+    return null
+  }
+
+  return createSupabaseClient<Database>(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+function readMetadataString(metadata: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = metadata[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+async function getResponsible(userId: string | null): Promise<ShiftResponsible | null> {
+  if (!userId) return null
+
+  const adminClient = createAdminClient()
+  if (!adminClient) {
+    return { id: userId, name: null, last_name: null, displayName: null, email: null }
+  }
+
+  const { data, error } = await adminClient.auth.admin.getUserById(userId)
+  if (error) {
+    return { id: userId, name: null, last_name: null, displayName: null, email: null }
+  }
+
+  const metadata = data.user.user_metadata ?? {}
+  const name = readMetadataString(metadata, ['name', 'first_name', 'firstName', 'given_name'])
+  const lastName = readMetadataString(metadata, ['last_name', 'lastName', 'family_name'])
+  const fullName = readMetadataString(metadata, ['full_name', 'fullName', 'display_name'])
+  const displayName = fullName ?? ([name, lastName].filter(Boolean).join(' ') || null)
+
+  return {
+    id: userId,
+    name,
+    last_name: lastName,
+    displayName,
+    email: data.user.email ?? null,
+  }
+}
 
 export async function getActiveShift(locationId: number) {
   const supabase = await createClient()
@@ -19,6 +78,42 @@ export async function getActiveShift(locationId: number) {
     .maybeSingle()
 
   return data
+}
+
+export async function getActiveShiftSummary(locationId: number) {
+  const activeShift = await getActiveShift(locationId)
+  if (!activeShift) return null
+
+  const supabase = await createClient()
+  const { data: payments, error } = await supabase
+    .from('payments')
+    .select('amount, payment_method, payment_type')
+    .eq('shift_id', activeShift.id)
+
+  if (error) throw new Error(error.message)
+
+  const totals = computeShiftTotals(
+    (payments ?? []).map(payment => ({
+      amount: payment.amount ?? 0,
+      payment_method: payment.payment_method ?? '',
+    }))
+  )
+
+  const newSubscriptions = (payments ?? []).filter(payment => payment.payment_type === 'new_subscription')
+  const renewals = (payments ?? []).filter(payment => payment.payment_type === 'renewal')
+  const sumPayments = (rows: typeof newSubscriptions) =>
+    rows.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
+
+  return {
+    shift: activeShift,
+    responsible: await getResponsible(activeShift.opened_by),
+    totals,
+    paymentCount: payments?.length ?? 0,
+    newSubscriptionCount: newSubscriptions.length,
+    newSubscriptionIncome: sumPayments(newSubscriptions),
+    renewalCount: renewals.length,
+    renewalIncome: sumPayments(renewals),
+  }
 }
 
 export async function openShift(locationId: number): Promise<{ data: unknown; error: string | null }> {
@@ -54,14 +149,19 @@ export async function closeShift(shiftId: number, notes?: string): Promise<{ err
     (payments ?? []).map(p => ({ amount: p.amount ?? 0, payment_method: p.payment_method ?? '' }))
   )
 
+  const normalizedNotes = notes?.trim() || null
+
   const { error } = await supabase
     .from('shifts')
-    .update({ closed_at: new Date().toISOString(), notes: notes ?? null, ...totals })
+    .update({ closed_at: new Date().toISOString(), notes: normalizedNotes, ...totals })
     .eq('id', shiftId)
     .eq('opened_by', user.id)
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
   revalidatePath('/shifts')
+  revalidatePath(`/shifts/${shiftId}`)
   return { error: null }
 }
 
@@ -83,7 +183,7 @@ export async function getShifts(locationId: number, userId?: string) {
 export async function getShiftsPage(
   locationId: number,
   params?: PaginationParams & { userId?: string }
-): Promise<PaginatedResult<Awaited<ReturnType<typeof getShifts>>[number]>> {
+): Promise<PaginatedResult<Awaited<ReturnType<typeof getShifts>>[number] & { responsible: ShiftResponsible | null }>> {
   const supabase = await createClient()
   const { page, pageSize, search, from, to } = normalizePagination(params)
 
@@ -111,9 +211,17 @@ export async function getShiftsPage(
 
   const { data, error, count } = await query.range(from, to)
   if (error) throw new Error(error.message)
+  const rows = data ?? []
+  const responsibleEntries = await Promise.all(
+    rows.map(async (shift) => [shift.id, await getResponsible(shift.opened_by)] as const)
+  )
+  const responsibleByShiftId = new Map(responsibleEntries)
 
   return {
-    data: data ?? [],
+    data: rows.map((shift) => ({
+      ...shift,
+      responsible: responsibleByShiftId.get(shift.id) ?? null,
+    })),
     count: count ?? 0,
     page,
     pageSize,
@@ -133,5 +241,10 @@ export async function getShiftDetail(shiftId: number) {
   ])
   if (shiftRes.error) throw new Error(shiftRes.error.message)
   const isMine = !!user && shiftRes.data.opened_by === user.id
-  return { shift: shiftRes.data, payments: paymentsRes.data ?? [], isMine }
+  return {
+    shift: shiftRes.data,
+    responsible: await getResponsible(shiftRes.data.opened_by),
+    payments: paymentsRes.data ?? [],
+    isMine,
+  }
 }

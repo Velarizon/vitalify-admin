@@ -1,7 +1,7 @@
 // app/(dashboard)/layout.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { ShiftBlocker } from '@/components/layout/shift-blocker'
@@ -16,13 +16,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { role } = useAuthStore()
   const { selectedLocation, sidebarOpen } = usePreferencesStore()
 
-  useEffect(() => {
+  const refreshActiveShift = useCallback(async () => {
     if (!selectedLocation) return
-    getActiveShift(selectedLocation.location.id).then(shift => {
-      setActiveShift(shift)
-      setShiftChecked(true)
-    })
+    const shift = await getActiveShift(selectedLocation.location.id)
+    setActiveShift(shift)
+    setShiftChecked(true)
   }, [selectedLocation])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setShiftChecked(false)
+      void refreshActiveShift()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [refreshActiveShift])
+
+  useEffect(() => {
+    const handleShiftChanged = () => {
+      void refreshActiveShift()
+    }
+
+    window.addEventListener('vitalify:shift-changed', handleShiftChanged)
+    return () => window.removeEventListener('vitalify:shift-changed', handleShiftChanged)
+  }, [refreshActiveShift])
 
   const handleOpenDoor = async () => {
     const { Terminal } = await import('@/lib/terminal')
@@ -44,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <Topbar
           hasActiveShift={!!activeShift}
+          activeShiftId={activeShift?.id}
           activeShiftOpenedAt={activeShift?.opened_at}
           onOpenDoor={handleOpenDoor}
         />
@@ -60,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <ShiftBlocker
           locationId={selectedLocation!.location.id}
           onShiftOpened={() => {
-            getActiveShift(selectedLocation!.location.id).then(setActiveShift)
+            void refreshActiveShift()
           }}
         />
       )}

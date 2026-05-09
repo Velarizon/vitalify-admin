@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import Webcam from 'react-webcam'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,8 +11,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { updateClient } from '@/lib/supabase/actions/clients'
 import { toast } from 'sonner'
-import { User, Fingerprint, CreditCard, History, Save, X } from 'lucide-react'
+import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Terminal from '@/lib/terminal'
 
 interface Subscription {
   id: number
@@ -26,6 +28,7 @@ interface Props {
     name: string | null
     last_name: string | null
     email: string | null
+    image_url: string | null
     phone_number: string | null
     date_of_birth: string | null
     gender: string | null
@@ -36,8 +39,19 @@ interface Props {
   onSuccess: () => void
 }
 
+interface FingerprintCapture {
+  fingerPrintData?: string
+  fingerPrintQuality?: number
+}
+
 export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false)
+  const [savingBiometrics, setSavingBiometrics] = useState(false)
+  const [capturingFP, setCapturingFP] = useState(false)
+  const [faceImage, setFaceImage] = useState<string | null>(null)
+  const [fingerprintData, setFingerprintData] = useState<FingerprintCapture | null>(null)
+  const [terminalConfigured, setTerminalConfigured] = useState(false)
+  const webcamRef = useRef<Webcam>(null)
   const [formData, setFormData] = useState({
     name: '',
     last_name: '',
@@ -49,16 +63,32 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
 
   useEffect(() => {
     if (client) {
-      setFormData({
-        name: client.name || '',
-        last_name: client.last_name || '',
-        email: client.email || '',
-        phone_number: client.phone_number || '',
-        date_of_birth: client.date_of_birth || '',
-        gender: client.gender || 'M',
-      })
+      const timeoutId = window.setTimeout(() => {
+        setFormData({
+          name: client.name || '',
+          last_name: client.last_name || '',
+          email: client.email || '',
+          phone_number: client.phone_number || '',
+          date_of_birth: client.date_of_birth || '',
+          gender: client.gender || 'M',
+        })
+        setFaceImage(client.image_url || null)
+        setFingerprintData(null)
+      }, 0)
+
+      return () => window.clearTimeout(timeoutId)
     }
   }, [client])
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return
+
+    const timeoutId = window.setTimeout(() => {
+      setTerminalConfigured(!!localStorage.getItem('terminalIp'))
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [open])
 
   const handleSave = async () => {
     if (!client) return
@@ -68,10 +98,53 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
       toast.success('Cliente actualizado correctamente')
       onSuccess()
       onClose()
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (error) {
+      toast.error((error as Error).message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const capturePhoto = useCallback(() => {
+    const screenshot = webcamRef.current?.getScreenshot()
+    if (screenshot) setFaceImage(screenshot)
+  }, [])
+
+  const captureFingerprint = async () => {
+    setCapturingFP(true)
+    try {
+      const fp = await Terminal.readFingerPrint()
+      setFingerprintData(fp)
+      toast.success('Huella capturada')
+    } catch {
+      toast.error('No se pudo capturar la huella')
+    } finally {
+      setCapturingFP(false)
+    }
+  }
+
+  const handleSaveBiometrics = async () => {
+    if (!client) return
+    setSavingBiometrics(true)
+    const toastId = toast.loading('Sincronizando biométricos...')
+
+    try {
+      await updateClient(client.id, { image_url: faceImage })
+
+      const employeeNo = String(client.id)
+      if (terminalConfigured) {
+        if (faceImage) await Terminal.setUpFaceImage(employeeNo, faceImage)
+        if (fingerprintData?.fingerPrintData) {
+          await Terminal.setUpFingerPrint(employeeNo, fingerprintData.fingerPrintData)
+        }
+      }
+
+      toast.success('Biométricos actualizados', { id: toastId })
+      onSuccess()
+    } catch (error) {
+      toast.error((error as Error).message, { id: toastId })
+    } finally {
+      setSavingBiometrics(false)
     }
   }
 
@@ -196,18 +269,96 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
             </TabsContent>
 
             {/* Tab: Biométricos */}
-            <TabsContent value="biometrics" className="mt-6">
-              <div className="py-12 flex flex-col items-center text-center space-y-4">
-                <div className="h-16 w-16 rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center animate-pulse">
-                  <Fingerprint className="h-8 w-8 text-primary/40" />
+            <TabsContent value="biometrics" className="mt-6 space-y-5">
+              {!terminalConfigured && (
+                <div className="flex items-start gap-3 rounded-lg border border-[#FF9F0A]/25 bg-[#FF9F0A]/10 p-3">
+                  <WifiOff className="mt-0.5 h-4 w-4 text-[#FF9F0A]" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#FF9F0A]">Terminal no configurada</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Puedes actualizar la foto del cliente. Para sincronizar rostro o huella con Hikvision, configura la terminal en este navegador.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-bold uppercase tracking-wider">Sincronización Biométrica</h3>
-                  <p className="text-xs text-muted-foreground max-w-xs">
-                    No se detectó un dispositivo Hikvision vinculado. Conecta un terminal desde la sección de configuración.
-                  </p>
+              )}
+
+              <div className="grid gap-5 md:grid-cols-[1.1fr_0.9fr]">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-technical">Foto facial</Label>
+                    {faceImage && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-[9px] uppercase tracking-widest"
+                        onClick={() => setFaceImage(null)}
+                      >
+                        <RotateCcw className="h-3 w-3" /> Recapturar
+                      </Button>
+                    )}
+                  </div>
+
+                  {faceImage ? (
+                    <img src={faceImage} alt="Foto del cliente" className="h-64 w-full rounded-lg border border-border object-cover" />
+                  ) : (
+                    <div className="space-y-3">
+                      <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        className="h-64 w-full rounded-lg border border-border object-cover"
+                        videoConstraints={{ facingMode: 'user', width: 500, height: 360 }}
+                      />
+                      <Button type="button" size="sm" className="h-8 text-[10px] uppercase font-bold tracking-widest gap-2" onClick={capturePhoto}>
+                        <Camera className="h-3.5 w-3.5" /> Capturar foto
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <Button variant="outline" size="sm" className="h-8 text-[9px] uppercase tracking-widest">Configurar Terminal</Button>
+
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-border/60 bg-background/60 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+                        <Fingerprint className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-foreground">Huella digital</p>
+                        <p className="text-xs text-muted-foreground">Captura y sincroniza la huella del miembro.</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 h-8 w-full text-[10px] uppercase font-bold tracking-widest gap-2"
+                      onClick={captureFingerprint}
+                      disabled={capturingFP || !terminalConfigured}
+                    >
+                      <Fingerprint className="h-3.5 w-3.5" />
+                      {capturingFP ? 'Capturando...' : 'Capturar huella'}
+                    </Button>
+
+                    {fingerprintData?.fingerPrintQuality !== undefined && (
+                      <div className="mt-3 flex items-center gap-2 rounded-md bg-primary/10 p-2 text-xs text-primary">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Calidad: {fingerprintData.fingerPrintQuality}
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-9 w-full text-[10px] uppercase font-black tracking-widest bg-primary text-primary-foreground shadow-neon"
+                    onClick={handleSaveBiometrics}
+                    disabled={savingBiometrics || (!faceImage && !fingerprintData)}
+                  >
+                    {savingBiometrics ? 'Sincronizando...' : 'Guardar biométricos'}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
 
@@ -219,7 +370,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                     <div className="flex items-center justify-between mb-4">
                       <div className="space-y-0.5">
                         <p className="text-technical">Plan contratado</p>
-                        <h4 className="text-lg font-bold text-primary italic uppercase">{(subscription.plans as any)?.name ?? 'Plan Personalizado'}</h4>
+                        <h4 className="text-lg font-bold text-primary italic uppercase">{subscription.plans?.name ?? 'Plan Personalizado'}</h4>
                       </div>
                       <div className="text-right">
                         <p className="text-technical">Estado de vigencia</p>

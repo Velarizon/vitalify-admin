@@ -103,8 +103,8 @@ export function DataTable<TData, TValue>({
           <TableHeader className="bg-secondary/20">
             {table.getHeaderGroups().map(hg => (
               <TableRow key={hg.id} className="border-b border-white/5 hover:bg-transparent">
-                {hg.headers.map(h => (
-                  <TableHead key={h.id} className="h-10 text-[9px] uppercase tracking-[0.2em] font-black px-4 text-muted-foreground/70">
+                {hg.headers.map((h, headerIndex) => (
+                  <TableHead key={`${h.id}-${headerIndex}`} className="h-10 text-[9px] uppercase tracking-[0.2em] font-black px-4 text-muted-foreground/70">
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
@@ -118,8 +118,8 @@ export function DataTable<TData, TValue>({
                   key={row.id} 
                   className="group border-none hover:bg-primary/[0.03] transition-colors duration-200"
                 >
-                  {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id} className="py-3 px-4 text-xs border-none">
+                  {row.getVisibleCells().map((cell, cellIndex) => (
+                    <TableCell key={`${cell.id}-${cellIndex}`} className="py-3 px-4 text-xs border-none">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

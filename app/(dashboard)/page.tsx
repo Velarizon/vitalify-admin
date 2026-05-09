@@ -8,21 +8,82 @@ import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Cake, Activity, TrendingUp, Zap, Calendar, ArrowUpRight, Users } from 'lucide-react'
+import { Cake, Activity, TrendingUp, Zap, Calendar, ArrowUpRight, Users, DoorOpen, ShieldCheck, Timer, UserRoundPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
 export default function DashboardPage() {
-  const { userData } = useAuthStore()
+  const { userData, role } = useAuthStore()
   const { selectedLocation } = usePreferencesStore()
   const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null)
 
   useEffect(() => {
-    if (!userData || !selectedLocation) return
+    if (!userData || !selectedLocation || role !== 'admin') return
     getDashboardData(userData.company.id, selectedLocation.location.id).then(setData)
-  }, [userData, selectedLocation])
+  }, [role, userData, selectedLocation])
+
+  if (role === 'worker') {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-700">
+        <div className="flex items-end justify-between border-b border-white/5 pb-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <h1 className="text-2xl font-heading font-black uppercase italic tracking-tighter text-foreground">Panel Operativo</h1>
+            </div>
+            <p className="text-technical tracking-[0.3em]">Acciones de turno y atención en piso</p>
+          </div>
+          <BadgeLike text={selectedLocation?.location.name ?? 'Sin ubicación'} />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <WorkerAction
+            href="/clients"
+            icon={UserRoundPlus}
+            title="Registrar cliente"
+            description="Alta, biometría y asignación de plan."
+          />
+          <WorkerAction
+            href="/payments"
+            icon={Calendar}
+            title="Consultar pagos"
+            description="Validar pagos recientes del turno."
+          />
+          <WorkerAction
+            href="/shifts"
+            icon={Timer}
+            title="Administrar turno"
+            description="Revisar tu turno activo y cierre."
+          />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="glass-panel rounded-xl p-6 lg:col-span-8">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary shadow-neon">
+                <DoorOpen className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-widest text-foreground">Flujo de trabajo</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Mantén el turno activo, registra clientes desde el módulo de clientes y consulta tu cierre desde turnos.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-panel rounded-xl border-l-4 border-l-primary p-6 lg:col-span-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Sesión</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">{userData?.company.name}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{selectedLocation?.location.name}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!data) {
     return (
@@ -167,5 +228,38 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function BadgeLike({ text }: { text: string }) {
+  return (
+    <div className="hidden rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary sm:block">
+      {text}
+    </div>
+  )
+}
+
+function WorkerAction({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: {
+  href: string
+  icon: typeof DoorOpen
+  title: string
+  description: string
+}) {
+  return (
+    <Link href={href} className="group rounded-xl border border-border/70 bg-background/80 p-4 transition-all hover:border-primary/40 hover:bg-primary/5">
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </span>
+        <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+      </div>
+      <p className="mt-4 text-sm font-black uppercase tracking-widest text-foreground">{title}</p>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p>
+    </Link>
   )
 }

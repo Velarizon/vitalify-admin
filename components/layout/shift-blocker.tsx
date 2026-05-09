@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { openShift } from '@/lib/supabase/actions/shifts'
-import { Timer } from 'lucide-react'
+import { logout } from '@/lib/supabase/actions/auth'
+import { useAuthStore } from '@/stores/auth'
+import { LogOut, Timer } from 'lucide-react'
 
 interface ShiftBlockerProps {
   locationId: number
@@ -11,7 +13,9 @@ interface ShiftBlockerProps {
 }
 
 export function ShiftBlocker({ locationId, onShiftOpened }: ShiftBlockerProps) {
+  const { clearUserData } = useAuthStore()
   const [loading, setLoading] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleOpenShift = async () => {
@@ -24,6 +28,12 @@ export function ShiftBlocker({ locationId, onShiftOpened }: ShiftBlockerProps) {
       return
     }
     onShiftOpened()
+  }
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    clearUserData()
+    await logout()
   }
 
   return (
@@ -39,8 +49,18 @@ export function ShiftBlocker({ locationId, onShiftOpened }: ShiftBlockerProps) {
           Debes iniciar tu turno para comenzar. Todos los pagos que registres quedarán asociados a este turno.
         </p>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button onClick={handleOpenShift} disabled={loading} className="w-full">
+        <Button onClick={handleOpenShift} disabled={loading || loggingOut} className="w-full">
           {loading ? 'Abriendo turno...' : 'Iniciar turno'}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleLogout}
+          disabled={loggingOut || loading}
+          className="w-full gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          {loggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
         </Button>
       </div>
     </div>

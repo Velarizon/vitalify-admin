@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const ADMIN_ONLY_PATHS = ['/plans', '/locations', '/reports', '/workers', '/terminal']
+const PUBLIC_PATHS = ['/login', '/auth/callback', '/set-password']
 
 export async function middleware(request: NextRequest) {
   // Server actions are POST requests with the next-action header — skip redirect logic
@@ -29,10 +30,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
+  const isPublicPath = PUBLIC_PATHS.some(p => path === p || path.startsWith(`${p}/`))
+  const loginUrl = new URL('/login', request.url)
+  loginUrl.searchParams.set('error', 'auth_unavailable')
 
-  if (!user && path !== '/login') {
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (error) {
+    console.error('Supabase auth unavailable in middleware:', error)
+    return isPublicPath ? supabaseResponse : NextResponse.redirect(loginUrl)
+  }
+
+  if (!user && !isPublicPath) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -41,13 +53,20 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user) {
-    const { data: access } = await supabase
-      .from('user_access')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
+    let role: string | null | undefined = null
+    try {
+      const { data: access } = await supabase
+        .from('user_access')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
 
-    const role = access?.role
+      role = access?.role
+    } catch (error) {
+      console.error('Supabase role lookup unavailable in middleware:', error)
+      return isPublicPath ? supabaseResponse : NextResponse.redirect(loginUrl)
+    }
+
     const isAdminOnly = ADMIN_ONLY_PATHS.some(p => path.startsWith(p))
 
     if (role === 'worker' && isAdminOnly) {

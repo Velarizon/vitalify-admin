@@ -4,13 +4,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { getClientsPage } from '@/lib/supabase/actions/clients'
 import { getActivePlans } from '@/lib/supabase/actions/plans'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Target, Shield } from 'lucide-react'
+import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
@@ -45,13 +44,13 @@ function statusBadge(client: Client) {
 
 export default function ClientsPage() {
   const { userData } = useAuthStore()
-  const { selectedLocation } = usePreferencesStore()
   const [clients, setClients] = useState<Client[]>([])
   const [plans, setPlans] = useState<{ id: number; name: string; price: number | null; duration: string | null }[]>([])
   const [loading, setLoading] = useState(true)
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState(25)
   const [totalRows, setTotalRows] = useState(0)
+  const [stats, setStats] = useState({ total: 0, active: 0, expired: 0 })
   const [search, setSearch] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -67,6 +66,7 @@ export default function ClientsPage() {
       })
       setClients(clientsResult.data)
       setTotalRows(clientsResult.count)
+      setStats(clientsResult.stats)
     } finally {
       setLoading(false)
     }
@@ -93,18 +93,6 @@ export default function ClientsPage() {
   }, [userData])
 
   const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
-
-  const stats = {
-    total: clients.length,
-    active: clients.filter(c => {
-      const sub = c.subscriptions?.[0]
-      return sub && new Date() <= new Date(sub.end_date ?? 0)
-    }).length,
-    expired: clients.filter(c => {
-      const sub = c.subscriptions?.[0]
-      return sub && new Date() > new Date(sub.end_date ?? 0)
-    }).length
-  }
 
   const columns: ColumnDef<Client>[] = [
     {
@@ -147,7 +135,7 @@ export default function ClientsPage() {
     {
       header: 'Vencimiento',
       cell: ({ row }) => {
-        const endDate = (row.original.subscriptions as any)?.[0]?.end_date
+        const endDate = row.original.subscriptions?.[0]?.end_date
         return (
           <span className="text-[10px] font-mono text-muted-foreground/80 tracking-tighter bg-secondary/30 px-2 py-0.5 rounded-sm">
             {endDate ? new Date(endDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : 'N/A'}
@@ -255,5 +243,3 @@ export default function ClientsPage() {
     </div>
   )
 }
-
-import { usePreferencesStore } from '@/stores/preferences'

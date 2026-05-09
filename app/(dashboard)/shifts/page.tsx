@@ -11,6 +11,8 @@ import { usePreferencesStore } from '@/stores/preferences'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { ArrowUpRight } from 'lucide-react'
+import { formatHermosilloDateTime } from '@/lib/dates'
 
 type Shift = Awaited<ReturnType<typeof getShiftsPage>>['data'][number]
 
@@ -19,18 +21,41 @@ const fmt = (n: number) =>
 
 const columns: ColumnDef<Shift>[] = [
   { accessorKey: 'id', header: 'ID', size: 50 },
-  { accessorKey: 'opened_at', header: 'Apertura', cell: ({ row }) => row.original.opened_at?.replace('T', ' ').slice(0, 16) },
+  {
+    id: 'responsible',
+    header: 'Responsable',
+    cell: ({ row }) => {
+      const responsible = row.original.responsible
+      const name = responsible?.displayName ?? responsible?.email ?? '—'
+      return (
+        <div className="flex flex-col">
+          <span className="text-xs font-semibold text-foreground">{name}</span>
+          {responsible?.email && responsible.displayName && (
+            <span className="text-[10px] text-muted-foreground">{responsible.email}</span>
+          )}
+        </div>
+      )
+    },
+  },
+  { accessorKey: 'opened_at', header: 'Apertura', cell: ({ row }) => formatHermosilloDateTime(row.original.opened_at) },
   { accessorKey: 'closed_at', header: 'Cierre', cell: ({ row }) =>
-    row.original.closed_at ? row.original.closed_at.replace('T', ' ').slice(0, 16) : <Badge className="bg-primary">Activo</Badge> },
+    row.original.closed_at ? formatHermosilloDateTime(row.original.closed_at) : <Badge className="bg-primary">Activo</Badge> },
   { accessorKey: 'cash_amount', header: 'Efectivo', cell: ({ row }) => fmt(row.original.cash_amount ?? 0) },
   { accessorKey: 'card_amount', header: 'Tarjeta', cell: ({ row }) => fmt(row.original.card_amount ?? 0) },
   { accessorKey: 'total_amount', header: 'Total', cell: ({ row }) => fmt(row.original.total_amount ?? 0) },
   {
-    header: '',
     id: 'actions',
+    header: '',
     cell: ({ row }) => (
       <Link href={`/shifts/${row.original.id}`}>
-        <Button variant="ghost" size="sm" className="h-6 text-xs">Ver detalle</Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 border-primary/30 bg-primary/5 px-3 text-[10px] font-black uppercase tracking-widest text-primary shadow-[0_0_14px_rgba(0,255,157,0.08)] transition-all hover:border-primary/60 hover:bg-primary/10 hover:shadow-[0_0_20px_rgba(0,255,157,0.16)]"
+        >
+          Detalle
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Button>
       </Link>
     ),
   },

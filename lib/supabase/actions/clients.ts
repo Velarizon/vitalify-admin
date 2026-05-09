@@ -19,9 +19,12 @@ export async function getClients(companyId: number) {
 export async function getClientsPage(
   companyId: number,
   params?: PaginationParams
-): Promise<PaginatedResult<Awaited<ReturnType<typeof getClients>>[number]>> {
+): Promise<PaginatedResult<Awaited<ReturnType<typeof getClients>>[number]> & {
+  stats: { total: number; active: number; expired: number }
+}> {
   const supabase = await createClient()
   const { page, pageSize, search, from, to } = normalizePagination(params)
+  const today = new Date().toISOString().split('T')[0]
 
   let query = supabase
     .from('clients')
@@ -39,11 +42,33 @@ export async function getClientsPage(
   const { data, error, count } = await query.range(from, to)
   if (error) throw new Error(error.message)
 
+  const [totalResult, activeResult, expiredResult] = await Promise.all([
+    supabase
+      .from('clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', companyId),
+    supabase
+      .from('clients')
+      .select('id, subscriptions!inner(id)', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .gte('subscriptions.end_date', today),
+    supabase
+      .from('clients')
+      .select('id, subscriptions!inner(id)', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .lt('subscriptions.end_date', today),
+  ])
+
   return {
     data: data ?? [],
     count: count ?? 0,
     page,
     pageSize,
+    stats: {
+      total: totalResult.count ?? 0,
+      active: activeResult.count ?? 0,
+      expired: expiredResult.count ?? 0,
+    },
   }
 }
 
@@ -70,7 +95,7 @@ export async function createSubscription(sub: {
 
 export async function updateClient(clientId: number, updates: {
   name?: string; last_name?: string; email?: string;
-  phone_number?: string; date_of_birth?: string; gender?: string
+  phone_number?: string; date_of_birth?: string; gender?: string; image_url?: string | null
 }) {
   const supabase = await createClient()
   const { error } = await supabase.from('clients').update(updates).eq('id', clientId)
