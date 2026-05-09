@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { deactivateWorker, inviteWorker, updateWorker } from '@/lib/supabase/actions/workers'
 import type { UserRole } from '@/stores/auth'
 
+export const runtime = 'edge'
+
 export async function POST(request: Request) {
   const body = await request.json()
 
