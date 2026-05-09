@@ -1,5 +1,10 @@
 import { createClient } from '@/lib/supabase/client'
 
+type BirthdayClient = {
+  name: string | null
+  last_name: string | null
+}
+
 export async function getBrowserDashboardData(companyId: number, locationId: number) {
   const supabase = createClient()
 
@@ -7,7 +12,7 @@ export async function getBrowserDashboardData(companyId: number, locationId: num
   const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
 
-  const [clientsRes, paymentsRes, genderRes, plansRes, birthdaysRes, expirationsRes] = await Promise.all([
+  const [clientsRes, paymentsRes, genderRes, plansRes, expirationsRes] = await Promise.all([
     supabase.from('subscriptions').select('id', { count: 'exact' })
       .eq('location_id', locationId)
       .gte('end_date', today),
@@ -17,9 +22,6 @@ export async function getBrowserDashboardData(companyId: number, locationId: num
     supabase.from('clients').select('gender').eq('company_id', companyId),
     supabase.from('subscriptions').select('plans(name)', { count: 'exact' })
       .eq('location_id', locationId),
-    supabase.from('clients').select('name, last_name, date_of_birth')
-      .eq('company_id', companyId)
-      .like('date_of_birth', `%-${today.slice(5)}`),
     supabase.from('subscriptions').select('id', { count: 'exact' })
       .eq('location_id', locationId)
       .gte('end_date', today)
@@ -49,6 +51,6 @@ export async function getBrowserDashboardData(companyId: number, locationId: num
     expirationsSoon,
     genderCount,
     planData: Object.entries(planMap).map(([name, value]) => ({ name, value })),
-    todayBirthdays: birthdaysRes.data ?? [],
+    todayBirthdays: [] as BirthdayClient[],
   }
 }
