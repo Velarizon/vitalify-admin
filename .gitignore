@@ -1,6 +1,7 @@
 .env
 .env.local
 .env*.local
+.mcp.toml
 node_modules/
 .next/
 .superpowers/
