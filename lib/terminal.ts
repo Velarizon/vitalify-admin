@@ -113,6 +113,9 @@ class Terminal {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...req, ...this.networkData }),
     })
+    if (!response.ok) {
+      throw new Error('No se pudo actualizar la fecha en el terminal.')
+    }
     return response.json()
   }
 

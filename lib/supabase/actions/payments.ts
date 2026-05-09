@@ -58,14 +58,15 @@ export async function createPayment(payment: {
   location_id: number
   shift_id?: number | null
   registered_by?: string | null
+  payment_type?: 'new_subscription' | 'renewal' | null
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Determine payment_type based on client subscription history
-  let paymentType: 'new_subscription' | 'renewal' | null = null
+  let paymentType: 'new_subscription' | 'renewal' | null = payment.payment_type ?? null
 
-  if (payment.subscription_id) {
+  if (!paymentType && payment.subscription_id) {
     // Get the client_id from the subscription
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')

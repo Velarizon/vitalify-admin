@@ -5,14 +5,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createSubscription } from '@/lib/supabase/actions/clients'
+import { createSubscription, updateSubscription } from '@/lib/supabase/actions/clients'
 import { createPayment } from '@/lib/supabase/actions/payments'
 import { getActivePlans } from '@/lib/supabase/actions/plans'
 import { getActiveShift } from '@/lib/supabase/actions/shifts'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
+import Terminal from '@/lib/terminal'
 import { toast } from 'sonner'
-import { add, format } from 'date-fns'
+import { add, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Banknote, CreditCard, ArrowLeftRight, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,9 +21,16 @@ import { cn } from '@/lib/utils'
 interface Props {
   client: {
     id: number
+    plan_id?: number | null
+    start_date?: string | null
     name: string | null
     last_name: string | null
-    subscriptions: any[]
+    subscriptions?: {
+      id: number
+      plan_id?: number | null
+      start_date?: string | null
+      end_date: string | null
+    }[]
   } | null
   open: boolean
   onClose: () => void
@@ -34,6 +42,8 @@ const PAYMENT_METHODS = [
   { value: 'card', label: 'Tarjeta', icon: CreditCard },
   { value: 'transfer', label: 'Transferencia', icon: ArrowLeftRight },
 ]
+
+const terminalDate = (date: string) => `${date}T23:59:59.000Z`
 
 export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Props) {
   const { userData } = useAuthStore()
@@ -68,13 +78,21 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
     }
   }, [open])
 
-  const calculateEndDate = (duration: string) => {
-    const today = new Date()
+  const calculateEndDate = (duration: string, baseDate = new Date()) => {
     const num = parseInt(duration) || 1
-    if (duration.includes('year')) return add(today, { years: num })
-    if (duration.includes('mon')) return add(today, { months: num })
-    if (duration.includes('day')) return add(today, { days: num })
-    return add(today, { months: 1 })
+    if (duration.includes('year')) return add(baseDate, { years: num })
+    if (duration.includes('mon')) return add(baseDate, { months: num })
+    if (duration.includes('day')) return add(baseDate, { days: num })
+    return add(baseDate, { months: 1 })
+  }
+
+  const getRenewalBaseDate = () => {
+    const currentEndDate = client?.subscriptions?.[0]?.end_date
+    if (!currentEndDate) return new Date()
+
+    const today = new Date()
+    const endDate = parseISO(currentEndDate)
+    return endDate > today ? endDate : today
   }
 
   const handleRenew = async () => {
@@ -84,24 +102,47 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
 
     try {
       const today = new Date()
-      const endDate = calculateEndDate(selectedPlan.duration)
+      const currentSubscription = client.subscriptions?.[0] ?? null
+      const startDate = format(today, 'yyyy-MM-dd')
+      const planDuration = selectedPlan.duration ?? '1 month'
+      const planPrice = selectedPlan.price ?? 0
+      const endDateValue = format(calculateEndDate(planDuration, getRenewalBaseDate()), 'yyyy-MM-dd')
       const activeShift = await getActiveShift(selectedLocation.location.id)
 
-      const newSub = await createSubscription({
-        client_id: client.id,
-        plan_id: selectedPlan.id,
-        location_id: selectedLocation.location.id,
-        start_date: format(today, 'yyyy-MM-dd'),
-        end_date: format(endDate, 'yyyy-MM-dd'),
-      })
+      const subscription = currentSubscription
+        ? await updateSubscription(currentSubscription.id, {
+          plan_id: selectedPlan.id,
+          location_id: selectedLocation.location.id,
+          end_date: endDateValue,
+        })
+        : await createSubscription({
+          client_id: client.id,
+          plan_id: selectedPlan.id,
+          location_id: selectedLocation.location.id,
+          start_date: startDate,
+          end_date: endDateValue,
+        })
 
       await createPayment({
-        subscription_id: newSub.id,
-        amount: selectedPlan.price,
+        subscription_id: subscription.id,
+        amount: planPrice,
         payment_method: paymentMethod,
         location_id: selectedLocation.location.id,
         shift_id: activeShift?.id || null,
+        payment_type: currentSubscription ? 'renewal' : 'new_subscription',
       })
+
+      try {
+        await Terminal.updateEndDate({
+          user_id: String(client.id),
+          end_date: terminalDate(endDateValue),
+        })
+      } catch {
+        toast.warning('Membresía renovada. No se pudo actualizar la fecha en la terminal.', { id: toastId })
+        onSuccess()
+        onClose()
+        return
+      }
 
       toast.success('Membresía renovada exitosamente', { id: toastId })
       onSuccess()
@@ -116,7 +157,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
   const fmtCurrency = (n: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
-  const nextEndDate = selectedPlan ? calculateEndDate(selectedPlan.duration) : null
+  const nextEndDate = selectedPlan ? calculateEndDate(selectedPlan.duration ?? '1 month', getRenewalBaseDate()) : null
   const clientCode = `#VTL-${client?.id.toString().padStart(5, '0')}`
 
   return (
@@ -146,7 +187,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
               <SelectContent className="bg-card border-border">
                 {plans.map(p => (
                   <SelectItem key={p.id} value={String(p.id)} className="text-sm focus:bg-primary/10 focus:text-primary">
-                    {p.name} — {fmtCurrency(p.price)}
+                    {p.name} — {fmtCurrency(p.price ?? 0)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -182,7 +223,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
               <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-xs text-muted-foreground">Total a pagar</span>
                 <span className="text-lg font-bold text-primary font-mono">
-                  {fmtCurrency(selectedPlan.price)}
+                  {fmtCurrency(selectedPlan.price ?? 0)}
                 </span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">

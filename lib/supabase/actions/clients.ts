@@ -5,15 +5,28 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { escapeForLike, normalizePagination, type PaginatedResult, type PaginationParams } from '@/lib/supabase/actions/pagination'
 
+type ClientRow = {
+  subscriptions?: { end_date?: string | null }[] | null
+}
+
+function sortClientSubscriptions<T extends ClientRow>(clients: T[]): T[] {
+  return clients.map(client => ({
+    ...client,
+    subscriptions: [...(client.subscriptions ?? [])].sort((a, b) =>
+      new Date(b.end_date ?? 0).getTime() - new Date(a.end_date ?? 0).getTime()
+    ),
+  }))
+}
+
 export async function getClients(companyId: number) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('clients')
-    .select(`*, subscriptions(id, end_date, plans(name))`)
+    .select(`*, subscriptions(id, plan_id, start_date, end_date, plans(name))`)
     .eq('company_id', companyId)
     .order('id', { ascending: false })
   if (error) throw new Error(error.message)
-  return data ?? []
+  return sortClientSubscriptions(data ?? [])
 }
 
 export async function getClientsPage(
@@ -28,7 +41,7 @@ export async function getClientsPage(
 
   let query = supabase
     .from('clients')
-    .select('*, subscriptions(id, end_date, plans(name))', { count: 'exact' })
+    .select('*, subscriptions(id, plan_id, start_date, end_date, plans(name))', { count: 'exact' })
     .eq('company_id', companyId)
     .order('id', { ascending: false })
 
@@ -60,7 +73,7 @@ export async function getClientsPage(
   ])
 
   return {
-    data: data ?? [],
+    data: sortClientSubscriptions(data ?? []),
     count: count ?? 0,
     page,
     pageSize,
@@ -90,6 +103,26 @@ export async function createSubscription(sub: {
   const supabase = await createClient()
   const { data, error } = await supabase.from('subscriptions').insert(sub).select().single()
   if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateSubscription(subscriptionId: number, updates: {
+  plan_id?: number
+  location_id?: number
+  start_date?: string
+  end_date?: string
+}) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .update(updates)
+    .eq('id', subscriptionId)
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/clients')
+  revalidatePath('/payments')
   return data
 }
 
