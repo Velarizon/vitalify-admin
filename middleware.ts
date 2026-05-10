@@ -53,6 +53,16 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user) {
+    const mustChangePassword = user.user_metadata?.must_change_password === true
+
+    if (mustChangePassword && path !== '/set-password') {
+      return NextResponse.redirect(new URL('/set-password', request.url))
+    }
+
+    if (!mustChangePassword && path === '/set-password') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
     let role: string | null | undefined = null
     try {
       const { data: access } = await supabase
