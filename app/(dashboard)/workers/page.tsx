@@ -197,7 +197,7 @@ export default function WorkersPage() {
         lastName: editForm.last_name,
         role: editForm.role,
         locationId: Number(editForm.location_id),
-      })
+      }) as { error: string | null }
       if (error) {
         toast.error(error)
         return
@@ -218,7 +218,7 @@ export default function WorkersPage() {
 
     setDeactivatingId(worker.id)
     try {
-      const { error } = await postWorkerAction({ action: 'deactivate', id: worker.id })
+      const { error } = await postWorkerAction({ action: 'deactivate', id: worker.id }) as { error: string | null }
       if (error) {
         toast.error(error)
         return
