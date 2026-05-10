@@ -67,8 +67,7 @@ async function postWorkerAction(payload: Record<string, unknown>) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  const result = await response.json()
-  return result as { error: string | null }
+  return response.json()
 }
 
 function getWorkerName(worker: Worker) {
