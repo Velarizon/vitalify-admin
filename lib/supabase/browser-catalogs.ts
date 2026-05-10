@@ -412,24 +412,12 @@ export async function getBrowserWorkersPage(
   companyId: number,
   params?: PaginationParams
 ): Promise<PaginatedResult<WorkerRow>> {
-  const supabase = createClient()
-  const { page, pageSize, search, from, to } = normalizePagination(params)
-
-  let query = supabase
-    .from('user_access')
-    .select('*, location:locations(*)', { count: 'exact' })
-    .eq('company_id', companyId)
-    .order('id', { ascending: false })
-
-  if (search) {
-    const value = escapeForLike(search)
-    query = query.or(`role.ilike.%${value}%,user_id.ilike.%${value}%`)
-  }
-
-  const { data, error, count } = await query.range(from, to)
-  if (error) throw new Error(error.message)
-
-  return { data: (data ?? []) as WorkerRow[], count: count ?? 0, page, pageSize }
+  const { page, pageSize, search } = normalizePagination(params)
+  const qs = new URLSearchParams({ companyId: String(companyId), page: String(page), pageSize: String(pageSize) })
+  if (search) qs.set('search', search)
+  const res = await fetch(`/api/workers?${qs}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json() as Promise<PaginatedResult<WorkerRow>>
 }
 
 export async function getBrowserShiftDetail(shiftId: number) {
@@ -445,9 +433,30 @@ export async function getBrowserShiftDetail(shiftId: number) {
   ])
   if (shiftRes.error) throw new Error(shiftRes.error.message)
 
+  const openedBy = shiftRes.data.opened_by
+  let responsible: { id: string; name: string | null; last_name: string | null; displayName: string | null; email: string | null } = {
+    id: openedBy,
+    name: null,
+    last_name: null,
+    displayName: null,
+    email: null,
+  }
+
+  if (openedBy) {
+    try {
+      const profileRes = await fetch(`/api/users?id=${encodeURIComponent(openedBy)}`)
+      if (profileRes.ok) {
+        const profile = await profileRes.json() as typeof responsible
+        responsible = profile
+      }
+    } catch {
+      // fall back to nulls
+    }
+  }
+
   return {
     shift: shiftRes.data,
-    responsible: { id: shiftRes.data.opened_by, name: null, last_name: null, displayName: null, email: null },
+    responsible,
     payments: (paymentsRes.data ?? []) as PaymentRow[],
     isMine: !!user && shiftRes.data.opened_by === user.id,
   }
