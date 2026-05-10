@@ -149,7 +149,7 @@ export async function inviteWorker(
   const lastName = profile?.last_name?.trim() || undefined
   const fullName = [name, lastName].filter(Boolean).join(' ') || undefined
   const headerStore = await headers()
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? headerStore.get('origin')
+  const origin = 'https://club.vitalify.app' // process.env.NEXT_PUBLIC_SITE_URL ?? headerStore.get('origin')
 
   const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
     ...(origin ? { redirectTo: `${origin}/set-password` } : {}),
