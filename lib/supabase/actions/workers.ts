@@ -4,8 +4,8 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { Database } from '@/types/supabase'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { generateTempPassword } from '@/lib/workers-utils'
 import { escapeForLike, normalizePagination, type PaginatedResult, type PaginationParams } from '@/lib/supabase/actions/pagination'
 
 export interface WorkerAccess {
@@ -133,44 +133,50 @@ export async function getWorkersPage(
   }
 }
 
-export async function inviteWorker(
+export async function createWorker(
   email: string,
   companyId: number,
   locationId: number,
   role: 'admin' | 'worker',
   profile?: { name?: string; last_name?: string }
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; tempPassword: string | null }> {
   const adminClient = createAdminClient()
   if (!adminClient) {
-    return { error: 'SUPABASE_SERVICE_ROLE_KEY no está configurada en el servidor.' }
+    return { error: 'SUPABASE_SERVICE_ROLE_KEY no está configurada en el servidor.', tempPassword: null }
   }
 
   const name = profile?.name?.trim() || undefined
   const lastName = profile?.last_name?.trim() || undefined
   const fullName = [name, lastName].filter(Boolean).join(' ') || undefined
-  const headerStore = await headers()
-  const origin = 'https://club.vitalify.app' // process.env.NEXT_PUBLIC_SITE_URL ?? headerStore.get('origin')
+  const tempPassword = generateTempPassword()
 
-  const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    ...(origin ? { redirectTo: `${origin}/set-password` } : {}),
-    data: {
+  const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+    email,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: {
       ...(name ? { name } : {}),
       ...(lastName ? { last_name: lastName } : {}),
       ...(fullName ? { full_name: fullName } : {}),
+      must_change_password: true,
     },
   })
-  if (inviteError) return { error: inviteError.message }
+  if (createError) return { error: createError.message, tempPassword: null }
 
   const { error: accessError } = await adminClient.from('user_access').insert({
-    user_id: invited.user.id,
+    user_id: created.user.id,
     company_id: companyId,
     location_id: locationId,
     role,
   })
-  if (accessError) return { error: accessError.message }
+
+  if (accessError) {
+    await adminClient.auth.admin.deleteUser(created.user.id)
+    return { error: accessError.message, tempPassword: null }
+  }
 
   revalidatePath('/workers')
-  return { error: null }
+  return { error: null, tempPassword }
 }
 
 export async function updateWorker(
