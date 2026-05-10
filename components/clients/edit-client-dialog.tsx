@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { updateBrowserClient } from '@/lib/supabase/browser-catalogs'
 import { toast } from 'sonner'
-import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff } from 'lucide-react'
+import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Terminal, { FingerprintCapture } from '@/lib/terminal'
 
@@ -39,8 +39,58 @@ interface Props {
   onSuccess: () => void
 }
 
+type ClientPayment = {
+  id: number
+  amount: number | null
+  payment_method: string | null
+  payment_date: string | null
+  payment_type: string | null
+  subscription_id: number | null
+  registered_by: string | null
+  subscriptions?: {
+    id: number
+    plans?: { name: string | null } | { name: string | null }[] | null
+  } | null
+  responsible?: {
+    id: string
+    displayName: string | null
+    email: string | null
+  } | null
+}
+
+const fmtCurrency = (amount: number | null) =>
+  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount ?? 0)
+
+const formatPaymentDate = (date: string | null) =>
+  date
+    ? new Date(date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—'
+
+const paymentTypeLabel = (type: string | null) => {
+  if (type === 'new_subscription') return 'Alta'
+  if (type === 'renewal') return 'Renovación'
+  return 'Pago'
+}
+
+const paymentMethodLabel = (method: string | null) => {
+  if (method === 'cash') return 'Efectivo'
+  if (method === 'card') return 'Tarjeta'
+  if (method === 'transfer') return 'Transferencia'
+  return method ?? '—'
+}
+
+function getPaymentPlanName(payment: ClientPayment) {
+  const plans = payment.subscriptions?.plans
+  if (Array.isArray(plans)) return plans[0]?.name ?? 'Membresía'
+  return plans?.name ?? 'Membresía'
+}
+
 export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
+  const [activeTab, setActiveTab] = useState('info')
   const [loading, setLoading] = useState(false)
+  const [loadingPayments, setLoadingPayments] = useState(false)
+  const [paymentsLoadedFor, setPaymentsLoadedFor] = useState<number | null>(null)
+  const [payments, setPayments] = useState<ClientPayment[]>([])
   const [savingBiometrics, setSavingBiometrics] = useState(false)
   const [capturingFP, setCapturingFP] = useState(false)
   const [faceImage, setFaceImage] = useState<string | null>(null)
@@ -69,6 +119,9 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
         })
         setFaceImage(client.image_url || null)
         setFingerprintData(null)
+        setActiveTab('info')
+        setPayments([])
+        setPaymentsLoadedFor(null)
       }, 0)
 
       return () => window.clearTimeout(timeoutId)
@@ -84,6 +137,35 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
 
     return () => window.clearTimeout(timeoutId)
   }, [open])
+
+  useEffect(() => {
+    if (!open || activeTab !== 'payments' || !client || paymentsLoadedFor === client.id) return
+
+    let cancelled = false
+    setLoadingPayments(true)
+
+    fetch(`/api/clients/${client.id}/payments`)
+      .then(async (response) => {
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error ?? 'No se pudo cargar el historial de pagos')
+        return result as { payments: ClientPayment[] }
+      })
+      .then((result) => {
+        if (cancelled) return
+        setPayments(result.payments)
+        setPaymentsLoadedFor(client.id)
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error((error as Error).message)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPayments(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, client, open, paymentsLoadedFor])
 
   const handleSave = async () => {
     if (!client) return
@@ -165,7 +247,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="info" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6 border-b border-border/40">
             <TabsList className="h-12 gap-6">
               <TabsTrigger value="info" className="gap-2">
@@ -405,18 +487,61 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
 
             {/* Tab: Pagos */}
             <TabsContent value="payments" className="mt-6">
-              <div className="py-12 flex flex-col items-center text-center space-y-4">
-                <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center">
-                  <History className="h-5 w-5 text-muted-foreground/50" />
+              {loadingPayments ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-3 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em]">Cargando pagos</p>
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Historial de Transacciones</h3>
-                  <p className="text-[10px] text-muted-foreground/60 max-w-xs">
-                    El historial completo de pagos está disponible en el módulo global de finanzas.
-                  </p>
+              ) : payments.length === 0 ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-4">
+                  <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center">
+                    <History className="h-5 w-5 text-muted-foreground/50" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sin pagos registrados</h3>
+                    <p className="text-[10px] text-muted-foreground/60 max-w-xs">
+                      No se encontraron transacciones asociadas a las suscripciones de este miembro.
+                    </p>
+                  </div>
                 </div>
-                <Button variant="link" className="text-primary text-[10px] uppercase font-bold tracking-widest">Ver en Pagos →</Button>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Historial de Transacciones</h3>
+                      <p className="text-[10px] text-muted-foreground/60">{payments.length} pagos asociados a suscripciones del miembro</p>
+                    </div>
+                    <Badge variant="outline" className="text-[9px] uppercase tracking-widest">
+                      {fmtCurrency(payments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0))}
+                    </Badge>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto rounded-lg border border-border/40">
+                    <div className="grid grid-cols-[1fr_1fr_0.9fr_1fr] gap-3 border-b border-border/30 bg-secondary/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                      <span>Cantidad</span>
+                      <span>Membresía</span>
+                      <span>Fecha</span>
+                      <span>Responsable</span>
+                    </div>
+                    {payments.map((payment) => {
+                      const responsible = payment.responsible?.displayName ?? payment.responsible?.email ?? (payment.registered_by ? `ID ${payment.registered_by.slice(0, 8)}` : '—')
+                      return (
+                        <div key={payment.id} className="grid grid-cols-[1fr_1fr_0.9fr_1fr] gap-3 border-b border-border/20 px-3 py-3 last:border-b-0">
+                          <div className="space-y-1">
+                            <p className="text-sm font-bold text-primary">{fmtCurrency(payment.amount)}</p>
+                            <p className="text-[9px] uppercase tracking-widest text-muted-foreground">
+                              {paymentTypeLabel(payment.payment_type)} · {paymentMethodLabel(payment.payment_method)}
+                            </p>
+                          </div>
+                          <p className="text-xs font-semibold text-foreground">{getPaymentPlanName(payment)}</p>
+                          <p className="text-xs font-mono text-muted-foreground">{formatPaymentDate(payment.payment_date)}</p>
+                          <p className="truncate text-xs text-muted-foreground" title={responsible}>{responsible}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </div>
         </Tabs>
