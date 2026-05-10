@@ -8,7 +8,7 @@ describe('generateTempPassword', () => {
     expect(generateTempPassword()).toHaveLength(12)
   })
 
-  it('only contains allowed characters (no ambiguous 0/O/l/1/I)', () => {
+  it('only contains allowed characters (no ambiguous chars: 0/O/o/l/1/I)', () => {
     for (let i = 0; i < 50; i++) {
       const pwd = generateTempPassword()
       for (const char of pwd) {

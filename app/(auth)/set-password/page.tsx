@@ -74,7 +74,12 @@ export default function SetPasswordPage() {
       return
     }
 
-    await supabase.auth.updateUser({ data: { must_change_password: false } })
+    const { error: flagError } = await supabase.auth.updateUser({ data: { must_change_password: false } })
+    if (flagError) {
+      setError('Contraseña guardada, pero no se pudo completar la configuración. Contactá al administrador.')
+      setLoading(false)
+      return
+    }
 
     const { data: userResult } = await supabase.auth.getUser()
     const userId = userResult.user?.id
@@ -157,7 +162,7 @@ export default function SetPasswordPage() {
               className="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-widest shadow-neon transition-all"
               disabled={loading || checkingSession}
             >
-              {checkingSession ? 'Validando invitación...' : loading ? 'Guardando...' : 'Guardar contraseña'}
+              {checkingSession ? 'Validando sesión...' : loading ? 'Guardando...' : 'Guardar contraseña'}
             </Button>
           </form>
         </div>
