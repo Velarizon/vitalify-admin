@@ -42,7 +42,7 @@ export default function SetPasswordPage() {
 
       const { data } = await supabase.auth.getSession()
       if (!data.session) {
-        setError('La invitación no tiene una sesión válida. Abre de nuevo el enlace del correo.')
+        setError('No hay una sesión válida. Iniciá sesión con tu contraseña temporal primero.')
       }
       setCheckingSession(false)
     }
@@ -73,6 +73,8 @@ export default function SetPasswordPage() {
       setLoading(false)
       return
     }
+
+    await supabase.auth.updateUser({ data: { must_change_password: false } })
 
     const { data: userResult } = await supabase.auth.getUser()
     const userId = userResult.user?.id
