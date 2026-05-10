@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getBrowserLocations, getBrowserWorkersPage } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore, type UserRole } from '@/stores/auth'
 import { toast } from 'sonner'
-import { UserPlus, Pencil, ShieldAlert, ShieldCheck, MapPin, Mail } from 'lucide-react'
+import { UserPlus, Pencil, ShieldAlert, ShieldCheck, MapPin, Mail, Copy } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 
 type Worker = Awaited<ReturnType<typeof getBrowserWorkersPage>>['data'][number]
 type Location = Awaited<ReturnType<typeof getBrowserLocations>>[number]
 
-type InviteForm = {
+type CreateForm = {
   name: string
   last_name: string
   email: string
@@ -36,7 +36,7 @@ type EditForm = {
   location_id: string
 }
 
-const emptyInviteForm: InviteForm = {
+const emptyCreateForm: CreateForm = {
   name: '',
   last_name: '',
   email: '',
@@ -79,12 +79,13 @@ export default function WorkersPage() {
   const { userData } = useAuthStore()
   const [workers, setWorkers] = useState<Worker[]>([])
   const [locations, setLocations] = useState<Location[]>([])
-  const [inviteOpen, setInviteOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
-  const [inviteForm, setInviteForm] = useState<InviteForm>(emptyInviteForm)
+  const [createForm, setCreateForm] = useState<CreateForm>(emptyCreateForm)
   const [editForm, setEditForm] = useState<EditForm>(emptyEditForm)
-  const [savingInvite, setSavingInvite] = useState(false)
+  const [savingCreate, setSavingCreate] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [deactivatingId, setDeactivatingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [pageIndex, setPageIndex] = useState(0)
@@ -121,7 +122,7 @@ export default function WorkersPage() {
 
     void getBrowserLocations(userData.company.id).then((locationRows) => {
       setLocations(locationRows)
-      setInviteForm((current) => ({
+      setCreateForm((current) => ({
         ...current,
         location_id: current.location_id || String(locationRows[0]?.id ?? ''),
       }))
@@ -130,15 +131,15 @@ export default function WorkersPage() {
 
   const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
 
-  const openInvite = () => {
-    setInviteForm({
+  const openCreate = () => {
+    setCreateForm({
       name: '',
       last_name: '',
       email: '',
       role: 'worker',
       location_id: String(locations[0]?.id ?? ''),
     })
-    setInviteOpen(true)
+    setCreateOpen(true)
   }
 
   const openEdit = (worker: Worker) => {
@@ -152,34 +153,35 @@ export default function WorkersPage() {
     setEditOpen(true)
   }
 
-  const handleInvite = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!userData) return
 
-    setSavingInvite(true)
+    setSavingCreate(true)
     try {
-      const { error } = await postWorkerAction({
-        action: 'invite',
-        email: inviteForm.email.trim(),
+      const { error, tempPassword: pwd } = await postWorkerAction({
+        action: 'create',
+        email: createForm.email.trim(),
         companyId: userData.company.id,
-        locationId: Number(inviteForm.location_id),
-        role: inviteForm.role,
+        locationId: Number(createForm.location_id),
+        role: createForm.role,
         profile: {
-          name: inviteForm.name,
-          last_name: inviteForm.last_name,
+          name: createForm.name,
+          last_name: createForm.last_name,
         },
-      })
+      }) as { error: string | null; tempPassword: string | null }
+
       if (error) {
         toast.error(error)
         return
       }
 
-      toast.success('Invitación enviada')
-      setInviteOpen(false)
-      setInviteForm(emptyInviteForm)
+      setCreateOpen(false)
+      setCreateForm(emptyCreateForm)
+      setTempPassword(pwd)
       await loadData()
     } finally {
-      setSavingInvite(false)
+      setSavingCreate(false)
     }
   }
 
@@ -316,8 +318,8 @@ export default function WorkersPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-heading font-bold tracking-tight">Trabajadores</h1>
-        <Button size="sm" className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={openInvite}>
-          <UserPlus size={14} /> Invitar Personal
+        <Button size="sm" className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={openCreate}>
+          <UserPlus size={14} /> Agregar Personal
         </Button>
       </div>
 
@@ -349,20 +351,20 @@ export default function WorkersPage() {
         )}
       </div>
 
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md bg-card border-border/40">
           <DialogHeader>
-            <DialogTitle className="font-heading font-bold text-lg">Invitar Personal</DialogTitle>
+            <DialogTitle className="font-heading font-bold text-lg">Agregar Personal</DialogTitle>
           </DialogHeader>
 
-          <form className="space-y-4 pt-4" onSubmit={handleInvite}>
+          <form className="space-y-4 pt-4" onSubmit={handleCreate}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="worker-name" className="text-technical">Nombre</Label>
                 <Input
                   id="worker-name"
-                  value={inviteForm.name}
-                  onChange={(event) => setInviteForm((current) => ({ ...current, name: event.target.value }))}
+                  value={createForm.name}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))}
                   required
                   className="bg-background/50 border-border"
                 />
@@ -372,8 +374,8 @@ export default function WorkersPage() {
                 <Label htmlFor="worker-last-name" className="text-technical">Apellido</Label>
                 <Input
                   id="worker-last-name"
-                  value={inviteForm.last_name}
-                  onChange={(event) => setInviteForm((current) => ({ ...current, last_name: event.target.value }))}
+                  value={createForm.last_name}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, last_name: event.target.value }))}
                   required
                   className="bg-background/50 border-border"
                 />
@@ -381,12 +383,12 @@ export default function WorkersPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="worker-email" className="text-technical">Email Corporativo</Label>
+              <Label htmlFor="worker-email" className="text-technical">Email</Label>
               <Input
                 id="worker-email"
                 type="email"
-                value={inviteForm.email}
-                onChange={(event) => setInviteForm((current) => ({ ...current, email: event.target.value }))}
+                value={createForm.email}
+                onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))}
                 required
                 className="bg-background/50 border-border"
               />
@@ -396,9 +398,9 @@ export default function WorkersPage() {
               <div className="space-y-2">
                 <Label className="text-technical">Rol de Acceso</Label>
                 <Select
-                  value={inviteForm.role}
+                  value={createForm.role}
                   onValueChange={(value) =>
-                    setInviteForm((current) => ({ ...current, role: value as UserRole }))
+                    setCreateForm((current) => ({ ...current, role: value as UserRole }))
                   }
                   items={roleOptions}
                 >
@@ -418,8 +420,8 @@ export default function WorkersPage() {
               <div className="space-y-2">
                 <Label className="text-technical">Ubicación Asignada</Label>
                 <Select
-                  value={inviteForm.location_id}
-                  onValueChange={(value) => setInviteForm((current) => ({ ...current, location_id: value ?? '' }))}
+                  value={createForm.location_id}
+                  onValueChange={(value) => setCreateForm((current) => ({ ...current, location_id: value ?? '' }))}
                   items={locations.map(l => ({ value: String(l.id), label: l.name }))}
                 >
                   <SelectTrigger className="w-full bg-background/50 border-border">
@@ -437,14 +439,65 @@ export default function WorkersPage() {
             </div>
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest" onClick={() => setInviteOpen(false)}>
+              <Button type="button" variant="outline" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest" onClick={() => setCreateOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon" disabled={savingInvite || !inviteForm.location_id}>
-                {savingInvite ? 'Enviando...' : 'Enviar Invitación'}
+              <Button type="submit" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon" disabled={savingCreate || !createForm.location_id}>
+                {savingCreate ? 'Creando...' : 'Crear Cuenta'}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={tempPassword !== null} onOpenChange={() => {}} disablePointerDismissal>
+        <DialogContent
+          className="sm:max-w-sm bg-card border-border/40"
+          showCloseButton={false}
+        >
+          <DialogHeader>
+            <DialogTitle className="font-heading font-bold text-lg">Contraseña Temporal</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <p className="text-[11px] text-muted-foreground">
+              Cuenta creada exitosamente. Entrega esta contraseña al trabajador en persona.
+            </p>
+
+            <div className="flex items-center gap-2">
+              <code className="flex-1 px-4 py-3 rounded-lg bg-background border border-border font-mono text-base tracking-widest text-primary font-bold">
+                {tempPassword}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 px-3"
+                onClick={() => {
+                  if (tempPassword) void navigator.clipboard.writeText(tempPassword)
+                  toast.success('Copiado')
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="p-3 rounded-sm bg-destructive/10 border border-destructive/20">
+              <p className="text-[10px] text-destructive font-medium uppercase tracking-wider">
+                Esta contraseña no se volverá a mostrar.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              size="sm"
+              className="h-9 px-6 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon"
+              onClick={() => setTempPassword(null)}
+            >
+              Entendido
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
