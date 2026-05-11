@@ -34,10 +34,11 @@ interface DataTableProps<TData, TValue> {
   toolbar?: React.ReactNode
   pagination?: ManualPaginationState
   search?: SearchState
+  hideSearch?: boolean
 }
 
 export function DataTable<TData, TValue>({
-  columns, data, searchPlaceholder = 'Buscar...', toolbar, pagination, search,
+  columns, data, searchPlaceholder = 'Buscar...', toolbar, pagination, search, hideSearch,
 }: DataTableProps<TData, TValue>) {
   const [localGlobalFilter, setLocalGlobalFilter] = useState('')
   const [localPageSize, setLocalPageSize] = useState(50)
@@ -85,18 +86,22 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {/* HUD Toolbar */}
-      <div className="flex items-center justify-between gap-4 flex-wrap bg-secondary/10 p-2 rounded-lg border border-white/5">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/50" />
-          <Input
-            placeholder={searchPlaceholder}
-            value={globalFilter}
-            onChange={e => isManualPagination ? setInputValue(e.target.value) : setLocalGlobalFilter(e.target.value)}
-            className="h-9 w-64 text-xs pl-9 bg-background/50 border-border/40 focus:border-primary/30 transition-all"
-          />
-        </div>
-        {toolbar}
-      </div>
+        {(!hideSearch || toolbar) && (
+          <div className="flex items-center justify-between gap-4 flex-wrap bg-secondary/10 p-2 rounded-lg border border-white/5">
+            {!hideSearch && (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/50" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  value={globalFilter}
+                  onChange={e => isManualPagination ? setInputValue(e.target.value) : setLocalGlobalFilter(e.target.value)}
+                  className="h-9 w-64 text-xs pl-9 bg-background/50 border-border/40 focus:border-primary/30 transition-all"
+                />
+              </div>
+            )}
+            {toolbar}
+          </div>
+        )}
 
       <div className="rounded-xl overflow-hidden border border-white/5 bg-background/20 backdrop-blur-sm">
         <Table className="min-w-[600px]">

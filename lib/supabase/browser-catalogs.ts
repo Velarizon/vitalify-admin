@@ -45,6 +45,12 @@ type WorkerRow = Database['public']['Tables']['user_access']['Row'] & {
   location?: LocationRow | null
 }
 
+export interface ClientSearchParams {
+  name?: string
+  lastName?: string
+  phone?: string
+}
+
 function sortClientSubscriptions<T extends ClientRow>(clients: T[]): T[] {
   return clients.map(client => ({
     ...client,
@@ -100,6 +106,41 @@ export async function getBrowserClientsPage(
       active: activeResult.count ?? 0,
       expired: expiredResult.count ?? 0,
     },
+  }
+}
+
+export async function searchBrowserClients(
+  companyId: number,
+  search: ClientSearchParams,
+  pagination?: PaginationParams
+): Promise<PaginatedResult<ClientRow>> {
+  const supabase = createClient()
+  const { from, to, page, pageSize } = normalizePagination(pagination)
+
+  let query = supabase
+    .from('clients')
+    .select('*, subscriptions(id, plan_id, start_date, end_date, plans(name))', { count: 'exact' })
+    .eq('company_id', companyId)
+    .order('id', { ascending: false })
+
+  if (search.name) {
+    query = query.ilike('name', `%${escapeForLike(search.name)}%`)
+  }
+  if (search.lastName) {
+    query = query.ilike('last_name', `%${escapeForLike(search.lastName)}%`)
+  }
+  if (search.phone) {
+    query = query.ilike('phone_number', `%${escapeForLike(search.phone)}%`)
+  }
+
+  const { data, error, count } = await query.range(from, to)
+  if (error) throw new Error(error.message)
+
+  return {
+    data: sortClientSubscriptions((data ?? []) as ClientRow[]),
+    count: count ?? 0,
+    page,
+    pageSize,
   }
 }
 

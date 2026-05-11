@@ -6,7 +6,6 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { getBrowserActivePlans, getBrowserClientsPage } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
@@ -14,6 +13,17 @@ import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
+
+
+import { 
+  getBrowserActivePlans, 
+  getBrowserClientsPage, 
+  searchBrowserClients,    
+  ClientSearchParams        
+} from '@/lib/supabase/browser-catalogs'
+
+import { ClientSearchBar } from '@/components/clients/client-search-bar'
+
 
 type Client = Awaited<ReturnType<typeof getBrowserClientsPage>>['data'][number]
 
@@ -50,26 +60,30 @@ export default function ClientsPage() {
   const [pageSize, setPageSize] = useState(25)
   const [totalRows, setTotalRows] = useState(0)
   const [stats, setStats] = useState({ total: 0, active: 0, expired: 0 })
-  const [search, setSearch] = useState('')
+  const [clientSearch, setClientSearch] = useState<ClientSearchParams>({})
   const [showCreate, setShowCreate] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [renewingClient, setRenewingClient] = useState<Client | null>(null)
+
   const load = useCallback(async () => {
-    if (!userData) return
-    setLoading(true)
-    try {
-      const clientsResult = await getBrowserClientsPage(userData.company.id, {
-        page: pageIndex + 1,
-        pageSize,
-        search,
-      })
-      setClients(clientsResult.data)
-      setTotalRows(clientsResult.count)
-      setStats(clientsResult.stats)
-    } finally {
-      setLoading(false)
+  if (!userData) return
+  setLoading(true)
+  try {
+    const hasSearch = clientSearch.name || clientSearch.lastName || clientSearch.phone
+
+    const clientsResult = hasSearch
+      ? await searchBrowserClients(userData.company.id, clientSearch, { page: pageIndex + 1, pageSize })
+      : await getBrowserClientsPage(userData.company.id, { page: pageIndex + 1, pageSize })
+
+    setClients(clientsResult.data)
+    setTotalRows(clientsResult.count)
+    if ('stats' in clientsResult) {
+      setStats(clientsResult.stats as { total: number; active: number; expired: number })
     }
-  }, [search, pageIndex, pageSize, userData])
+  } finally {
+    setLoading(false)
+  }
+}, [clientSearch, pageIndex, pageSize, userData])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -193,6 +207,17 @@ export default function ClientsPage() {
         <MetricCard title="Enlaces Activos" value={stats.active} className="border-primary/20" />
         <MetricCard title="Vencimientos" value={stats.expired} className="border-destructive/20" />
       </div>
+
+      <ClientSearchBar
+        onSearch={(params) => {
+          setPageIndex(0)
+          setClientSearch(params)
+        }}
+        onClear={() => {
+          setPageIndex(0)
+          setClientSearch({})
+        }}
+      />
       
       {loading && clients.length === 0 ? (
         <TableSkeleton />
@@ -200,7 +225,7 @@ export default function ClientsPage() {
         <DataTable
           columns={columns}
           data={clients}
-          searchPlaceholder="Ej: ID_001 o NOMBRE..."
+          hideSearch
           pagination={{
             pageIndex,
             pageSize,
@@ -212,13 +237,7 @@ export default function ClientsPage() {
               setPageSize(nextPageSize)
             },
           }}
-          search={{
-            value: search,
-            onChange: (value) => {
-              setPageIndex(0)
-              setSearch(value)
-            },
-          }}
+          
         />
       )}
 
