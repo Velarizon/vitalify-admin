@@ -316,7 +316,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
               ) : (
                 <Button
                   size="sm"
-                  className="h-8 text-[10px] uppercase font-bold tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="h-8 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon"
                   onClick={() => setShowConfirm('alta')}
                   disabled={terminalLoading}
                 >
@@ -670,7 +670,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   <UserMinus className="h-3 w-3" /> Confirmar baja
                 </Button>
               ) : (
-                <Button size="sm" className="h-9 text-[10px] uppercase font-bold tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleDarAlta}>
+                <Button size="sm" className="h-9 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={handleDarAlta}>
                   <UserPlus className="h-3 w-3" /> Confirmar alta
                 </Button>
               )}
