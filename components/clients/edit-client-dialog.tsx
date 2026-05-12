@@ -301,6 +301,30 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
               </DialogTitle>
               <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">ID: {client?.id.toString().padStart(6, '0')}</p>
             </div>
+            {terminalConfigured && (
+              isSynced ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-8 text-[10px] uppercase font-bold tracking-widest gap-2"
+                  onClick={() => setShowConfirm('baja')}
+                  disabled={terminalLoading}
+                >
+                  {terminalLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserMinus className="h-3 w-3" />}
+                  Dar de baja
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-8 text-[10px] uppercase font-bold tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => setShowConfirm('alta')}
+                  disabled={terminalLoading}
+                >
+                  {terminalLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                  Dar de alta
+                </Button>
+              )
+            )}
           </div>
         </DialogHeader>
 
@@ -603,6 +627,56 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
           </div>
         </Tabs>
       </DialogContent>
+        {/* Dialog de confirmación baja/alta */}
+        <Dialog open={showConfirm !== null} onOpenChange={v => !v && setShowConfirm(null)}>
+          <DialogContent className="sm:max-w-md bg-card border-border/40">
+            <DialogHeader>
+              <DialogTitle className="text-base font-heading font-bold">
+                {showConfirm === 'baja' ? 'Confirmar baja en terminal' : 'Confirmar alta en terminal'}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground pt-2">
+                {showConfirm === 'baja' ? (
+                  <>
+                    Se eliminará a <strong>{client?.name} {client?.last_name}</strong> del terminal facial.
+                    Sus datos permanecerán en el sistema y podrás darle de alta nuevamente en el futuro.
+                  </>
+                ) : (
+                  <>
+                    Se registrará a <strong>{client?.name} {client?.last_name}</strong> en el terminal con
+                    {client?.subscriptions?.[0] ? (
+                      <> su suscripción vigente ({
+                        client.subscriptions[0].start_date
+                          ? new Date(client.subscriptions[0].start_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                          : '—'
+                      } — {
+                        client.subscriptions[0].end_date
+                          ? new Date(client.subscriptions[0].end_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                          : '—'
+                      }).</>
+                    ) : (
+                      <> sin fechas de suscripción (no tiene membresía activa).</>
+                    )}
+                    {' '}La huella debe asignarse por separado desde la pestaña Biométricos.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 pt-2">
+              <Button variant="outline" size="sm" className="h-9 text-[10px] uppercase font-bold tracking-widest" onClick={() => setShowConfirm(null)}>
+                Cancelar
+              </Button>
+              {showConfirm === 'baja' ? (
+                <Button variant="destructive" size="sm" className="h-9 text-[10px] uppercase font-bold tracking-widest gap-2" onClick={handleDarBaja}>
+                  <UserMinus className="h-3 w-3" /> Confirmar baja
+                </Button>
+              ) : (
+                <Button size="sm" className="h-9 text-[10px] uppercase font-bold tracking-widest gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleDarAlta}>
+                  <UserPlus className="h-3 w-3" /> Confirmar alta
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </Dialog>
   )
 }
