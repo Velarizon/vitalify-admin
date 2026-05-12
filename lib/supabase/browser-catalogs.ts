@@ -286,6 +286,7 @@ export async function updateBrowserClient(clientId: number, updates: {
   gender?: string
   image_url?: string | null
   is_sync?: boolean | null
+  is_image_sync?: boolean | null
 }) {
   const supabase = createClient()
   const { error } = await supabase.from('clients').update(updates as any).eq('id', clientId)

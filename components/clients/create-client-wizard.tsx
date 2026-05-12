@@ -8,7 +8,7 @@ import { WizardStepper } from './wizard-stepper'
 import { StepPersonal, PersonalData } from './step-personal'
 import { StepBiometrics, BiometricData } from './step-biometrics'
 import { StepPlanPayment, PaymentData } from './step-plan-payment'
-import { createBrowserClientRecord, createBrowserPayment, createBrowserSubscription } from '@/lib/supabase/browser-catalogs'
+import { createBrowserClientRecord, createBrowserPayment, createBrowserSubscription, updateBrowserClient } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
@@ -89,8 +89,13 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
           start_date: terminalDate(payment.start_date, 'start'),
           end_date: terminalDate(payment.end_date, 'end'),
         })
-        if (biometric.faceImage) await Terminal.setUpFaceImage(employeeNo, biometric.faceImage)
+        const syncUpdates: { is_sync: true; is_image_sync?: true } = { is_sync: true }
+        if (biometric.faceImage) {
+          await Terminal.setUpFaceImage(employeeNo, biometric.faceImage)
+          syncUpdates.is_image_sync = true
+        }
         if (biometric.fingerprintData) await Terminal.setUpFingerPrint(employeeNo, biometric.fingerprintData.fingerPrintData)
+        await updateBrowserClient(client.id, syncUpdates)
         toast.success('Registro completado exitosamente', { id: toastId })
       } catch {
         toast.warning('Registro en DB exitoso. Error de sincronización local.', { id: toastId })
