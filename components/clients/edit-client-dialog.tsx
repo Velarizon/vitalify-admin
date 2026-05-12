@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Webcam from 'react-webcam'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { updateBrowserClient } from '@/lib/supabase/browser-catalogs'
 import { toast } from 'sonner'
-import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff, Loader2 } from 'lucide-react'
+import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff, Loader2, UserMinus, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Terminal, { FingerprintCapture } from '@/lib/terminal'
 
@@ -32,6 +32,7 @@ interface Props {
     phone_number: string | null
     date_of_birth: string | null
     gender: string | null
+    is_sync?: boolean | null
     subscriptions?: Subscription[] | null
   } | null
   open: boolean
@@ -105,6 +106,9 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
     date_of_birth: '',
     gender: 'M',
   })
+  const [isSynced, setIsSynced] = useState(false)
+  const [terminalLoading, setTerminalLoading] = useState(false)
+  const [showConfirm, setShowConfirm] = useState<'baja' | 'alta' | null>(null)
 
   useEffect(() => {
     if (client) {
@@ -122,6 +126,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
         setActiveTab('info')
         setPayments([])
         setPaymentsLoadedFor(null)
+        setIsSynced(client.is_sync ?? false)
       }, 0)
 
       return () => window.clearTimeout(timeoutId)
@@ -179,6 +184,58 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
       toast.error((error as Error).message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const formatTerminalDate = (d: string | null | undefined) => {
+    if (!d) return ''
+    return d.includes('T') ? d : `${d}T00:00:00.000`
+  }
+
+  const handleDarBaja = async () => {
+    if (!client) return
+    setShowConfirm(null)
+    setTerminalLoading(true)
+    const toastId = toast.loading('Eliminando del terminal...')
+    try {
+      await Terminal.deleteUser(String(client.id))
+      await updateBrowserClient(client.id, { is_sync: false })
+      setIsSynced(false)
+      toast.success('Cliente dado de baja del terminal', { id: toastId })
+      onSuccess()
+    } catch (err) {
+      toast.error((err as Error).message, { id: toastId })
+    } finally {
+      setTerminalLoading(false)
+    }
+  }
+
+  const handleDarAlta = async () => {
+    if (!client) return
+    setShowConfirm(null)
+    setTerminalLoading(true)
+    const toastId = toast.loading('Registrando en terminal...')
+    try {
+      const sub = client.subscriptions?.[0]
+      await Terminal.createPerson({
+        user_id: String(client.id),
+        name: client.name ?? '',
+        last_name: client.last_name ?? '',
+        gender: client.gender ?? 'M',
+        start_date: formatTerminalDate(sub?.start_date),
+        end_date: formatTerminalDate(sub?.end_date),
+      })
+      if (client.image_url) {
+        await Terminal.setUpFaceImage(String(client.id), client.image_url)
+      }
+      await updateBrowserClient(client.id, { is_sync: true })
+      setIsSynced(true)
+      toast.success('Cliente dado de alta en el terminal. Asigna la huella para activar acceso biométrico.', { id: toastId })
+      onSuccess()
+    } catch (err) {
+      toast.error((err as Error).message, { id: toastId })
+    } finally {
+      setTerminalLoading(false)
     }
   }
 
