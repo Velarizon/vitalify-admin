@@ -4,6 +4,7 @@ import { computeShiftTotals } from '@/lib/shifts'
 import type { Database } from '@/types/supabase'
 
 type ClientRow = Database['public']['Tables']['clients']['Row'] & {
+  is_sync?: boolean | null
   subscriptions?: {
     id: number
     plan_id: number | null
@@ -284,9 +285,10 @@ export async function updateBrowserClient(clientId: number, updates: {
   date_of_birth?: string
   gender?: string
   image_url?: string | null
+  is_sync?: boolean | null
 }) {
   const supabase = createClient()
-  const { error } = await supabase.from('clients').update(updates).eq('id', clientId)
+  const { error } = await supabase.from('clients').update(updates as any).eq('id', clientId)
   if (error) throw new Error(error.message)
 }
 
