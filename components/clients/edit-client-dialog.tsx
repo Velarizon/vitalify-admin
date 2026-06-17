@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff, Loader2, UserMinus, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Terminal, { FingerprintCapture } from '@/lib/terminal'
+import FacialApi from '@/lib/facial-api'
 
 interface Subscription {
   id: number
@@ -180,6 +181,25 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
     setLoading(true)
     try {
       await updateBrowserClient(client.id, formData)
+
+      const patch = Object.fromEntries(
+        Object.entries({
+          supabase_user_id: client.id,
+          first_name:   formData.name !== client.name ? formData.name : undefined,
+          last_name:    formData.last_name !== client.last_name ? formData.last_name : undefined,
+          email:        formData.email !== client.email ? formData.email : undefined,
+          phone_number: formData.phone_number !== client.phone_number ? formData.phone_number : undefined,
+          birth_date:   formData.date_of_birth !== client.date_of_birth ? formData.date_of_birth : undefined,
+          gender:       formData.gender !== client.gender ? formData.gender : undefined,
+        }).filter(([, v]) => v !== undefined)
+      )
+
+      if (Object.keys(patch).length > 1) {
+        FacialApi.updateUser(patch as { supabase_user_id: number }).catch(() => {
+          toast.warning('Guardado. Sin sincronización con reconocimiento facial.')
+        })
+      }
+
       toast.success('Cliente actualizado correctamente')
       onSuccess()
       onClose()
@@ -286,6 +306,16 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
         if (fingerprintData?.fingerPrintData) {
           await Terminal.setUpFingerPrint(employeeNo, fingerprintData.fingerPrintData)
         }
+      }
+
+      const imageChanged = faceImage && faceImage !== client.image_url
+      if (imageChanged && imageUrl) {
+        FacialApi.updateUser({
+          supabase_user_id:    client.id,
+          profile_picture_url: imageUrl,
+        }).catch(() => {
+          toast.warning('Biométricos guardados. Sin sincronización con reconocimiento facial.')
+        })
       }
 
       toast.success('Biométricos actualizados', { id: toastId })

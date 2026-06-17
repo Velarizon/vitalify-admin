@@ -14,6 +14,7 @@ import { usePreferencesStore } from '@/stores/preferences'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { uploadFaceImage } from '@/lib/face-image'
 import Terminal from '@/lib/terminal'
+import FacialApi from '@/lib/facial-api'
 import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, UserPlus, ShieldCheck } from 'lucide-react'
 
@@ -60,9 +61,10 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
       })
 
       // 1b. Upload face photo to Storage and link it to the client record
+      let uploadedImageUrl: string | null = null
       if (biometric.faceImage) {
-        const imageUrl = await uploadFaceImage(userData.company.id, client.id, biometric.faceImage)
-        await updateBrowserClient(client.id, { image_url: imageUrl })
+        uploadedImageUrl = await uploadFaceImage(userData.company.id, client.id, biometric.faceImage)
+        await updateBrowserClient(client.id, { image_url: uploadedImageUrl })
       }
 
       // 2. Insert subscription
@@ -106,6 +108,27 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
       } catch {
         toast.warning('Registro en DB exitoso. Error de sincronización local.', { id: toastId })
       }
+
+      // 5. Facial recognition API sync (non-blocking)
+      const planName = plans.find(p => p.id === payment.plan_id)?.name ?? ''
+      FacialApi.registerUser({
+        supabase_user_id: client.id,
+        email: personal.email,
+        first_name: personal.name,
+        last_name: personal.last_name,
+        phone_number: personal.phone_number || null,
+        gender: personal.gender || null,
+        birth_date: personal.date_of_birth || null,
+        profile_picture_url: uploadedImageUrl,
+        membership: {
+          membership_type: planName,
+          start_date: payment.start_date,
+          end_date: payment.end_date,
+          is_active: true,
+        },
+      }).catch(() => {
+        toast.warning('Registro guardado. Sin sincronización con reconocimiento facial.')
+      })
 
       onClose()
       setStep(0); setPersonal(emptyPersonal); setBiometric(emptyBiometric); setPayment(emptyPayment)
