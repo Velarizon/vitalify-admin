@@ -12,6 +12,7 @@ import { createBrowserClientRecord, createBrowserPayment, createBrowserSubscript
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
+import { uploadFaceImage } from '@/lib/face-image'
 import Terminal from '@/lib/terminal'
 import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, UserPlus, ShieldCheck } from 'lucide-react'
@@ -56,8 +57,13 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
       const client = await createBrowserClientRecord({
         ...personal,
         company_id: userData.company.id,
-        image_url: biometric.faceImage ?? undefined,
       })
+
+      // 1b. Upload face photo to Storage and link it to the client record
+      if (biometric.faceImage) {
+        const imageUrl = await uploadFaceImage(userData.company.id, client.id, biometric.faceImage)
+        await updateBrowserClient(client.id, { image_url: imageUrl })
+      }
 
       // 2. Insert subscription
       const subscription = await createBrowserSubscription({

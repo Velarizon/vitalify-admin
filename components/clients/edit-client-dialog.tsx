@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { updateBrowserClient } from '@/lib/supabase/browser-catalogs'
+import { uploadFaceImage, resolveFaceImageBase64 } from '@/lib/face-image'
+import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
 import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff, Loader2, UserMinus, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -87,6 +89,7 @@ function getPaymentPlanName(payment: ClientPayment) {
 }
 
 export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
+  const { userData } = useAuthStore()
   const [activeTab, setActiveTab] = useState('info')
   const [loading, setLoading] = useState(false)
   const [loadingPayments, setLoadingPayments] = useState(false)
@@ -226,7 +229,8 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
         end_date: formatTerminalDate(sub?.end_date),
       })
       if (client.image_url) {
-        await Terminal.setUpFaceImage(String(client.id), client.image_url)
+        const terminalImage = await resolveFaceImageBase64(client.image_url)
+        await Terminal.setUpFaceImage(String(client.id), terminalImage)
       }
       await updateBrowserClient(client.id, { is_sync: true })
       setIsSynced(true)
@@ -258,16 +262,27 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
   }
 
   const handleSaveBiometrics = async () => {
-    if (!client) return
+    if (!client || !userData) return
     setSavingBiometrics(true)
     const toastId = toast.loading('Sincronizando biométricos...')
 
     try {
-      await updateBrowserClient(client.id, { image_url: faceImage })
+      // faceImage es un data URI cuando se acaba de capturar; si no cambió desde la carga
+      // del cliente, puede ya ser una URL de Storage. El terminal siempre necesita base64.
+      let imageUrl = faceImage
+      let terminalImage = faceImage
+
+      if (faceImage?.startsWith('data:')) {
+        imageUrl = await uploadFaceImage(userData.company.id, client.id, faceImage)
+      } else if (faceImage) {
+        terminalImage = await resolveFaceImageBase64(faceImage)
+      }
+
+      await updateBrowserClient(client.id, { image_url: imageUrl })
 
       const employeeNo = String(client.id)
       if (terminalConfigured) {
-        if (faceImage) await Terminal.setUpFaceImage(employeeNo, faceImage)
+        if (terminalImage) await Terminal.setUpFaceImage(employeeNo, terminalImage)
         if (fingerprintData?.fingerPrintData) {
           await Terminal.setUpFingerPrint(employeeNo, fingerprintData.fingerPrintData)
         }
