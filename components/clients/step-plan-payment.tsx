@@ -5,7 +5,8 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Camera, QrCode, RotateCcw, Banknote, CreditCard, ArrowLeftRight } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Camera, QrCode, RotateCcw, Banknote, CreditCard, ArrowLeftRight, Smartphone } from 'lucide-react'
 import { add, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -21,18 +22,22 @@ const PAYMENT_METHODS = [
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
+export const MOBILE_APP_ADDON_PRICE = 99
+
 export interface PaymentData {
   plan_id: number
   payment_method: string
   start_date: string
   end_date: string
   receipt_image: string | null
+  mobile_app: boolean
 }
 
 interface Props {
   data: PaymentData
   onChange: (data: PaymentData) => void
   plans: { id: number; name: string; price: number | null; duration: string | null }[]
+  gymRegistered?: boolean
 }
 
 export function computeEndDate(startDate: string, duration: string | null): string {
@@ -48,7 +53,7 @@ export function computeEndDate(startDate: string, duration: string | null): stri
   return startDate
 }
 
-export function StepPlanPayment({ data, onChange, plans }: Props) {
+export function StepPlanPayment({ data, onChange, plans, gymRegistered = false }: Props) {
   const [showWebcam, setShowWebcam] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [qrToken] = useState(() => Math.random().toString(36).slice(2))
@@ -143,13 +148,48 @@ export function StepPlanPayment({ data, onChange, plans }: Props) {
         </div>
       </div>
 
+      {/* Mobile app add-on — only when the gym is registered in Vitalify */}
+      {gymRegistered && (
+      <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/30 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+            <Smartphone className="h-5 w-5 text-primary" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold text-foreground">Complemento App Móvil</p>
+            <p className="text-xs text-muted-foreground">
+              Acceso a la aplicación móvil · +{fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={data.mobile_app}
+          onCheckedChange={v => set({ mobile_app: v })}
+        />
+      </div>
+      )}
+
       {/* Summary */}
       {selectedPlan && nextEndDate && (
         <div className="rounded-lg border border-border/30 bg-secondary/20 divide-y divide-border/20 animate-in fade-in duration-200">
           <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-xs text-muted-foreground">Plan</span>
+            <span className="text-xs font-semibold text-foreground font-mono">
+              {fmtCurrency(selectedPlan.price ?? 0)}
+            </span>
+          </div>
+          {data.mobile_app && (
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs text-muted-foreground">Complemento App Móvil</span>
+              <span className="text-xs font-semibold text-foreground font-mono">
+                {fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center justify-between px-4 py-3">
             <span className="text-xs text-muted-foreground">Total a pagar</span>
             <span className="text-lg font-bold text-primary font-mono">
-              {fmtCurrency(selectedPlan.price ?? 0)}
+              {fmtCurrency((selectedPlan.price ?? 0) + (data.mobile_app ? MOBILE_APP_ADDON_PRICE : 0))}
             </span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
