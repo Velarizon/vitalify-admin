@@ -29,30 +29,71 @@ export interface UpdateUserPatch {
   user_image_base64?: string | null
 }
 
+export interface MembershipUpdatePayload {
+  supabase_user_id: number
+  membership_type: string
+  start_date: string
+  end_date: string
+  is_active: boolean
+}
+
+export interface FacialSyncUserData {
+  success: boolean
+  user_id: number
+  supabase_user_id: number
+  embedding_synced: boolean
+  embedding: string | null
+  warning: string | null
+  error: string | null
+}
+
+export interface FacialSyncResponse {
+  success: boolean
+  message: string
+  status: number
+  data: FacialSyncUserData
+  error_type: string | null
+}
+
 class FacialApi {
-  async registerUser(payload: RegisterUserPayload): Promise<void> {
+  async registerUser(payload: RegisterUserPayload): Promise<FacialSyncResponse> {
     const res = await fetch('/api/facial-sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
     if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`FacialApi.registerUser failed: ${text}`)
+      const json = await res.json().catch(() => null)
+      throw new Error(json?.message ?? 'Error al registrar usuario en reconocimiento facial')
     }
+    return res.json()
   }
 
-  async updateUser(payload: { supabase_user_id: number } & UpdateUserPatch): Promise<void> {
+  async updateUser(payload: { supabase_user_id: number } & UpdateUserPatch): Promise<FacialSyncResponse> {
     const res = await fetch('/api/facial-sync', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
     if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      throw new Error(json?.message ?? 'Error al actualizar usuario en reconocimiento facial')
+    }
+    return res.json()
+  }
+
+  async updateMembership(payload: MembershipUpdatePayload): Promise<void> {
+    const res = await fetch('/api/facial-sync/membership', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
       const text = await res.text()
-      throw new Error(`FacialApi.updateUser failed: ${text}`)
+      throw new Error(`FacialApi.updateMembership failed: ${text}`)
     }
   }
 }
+
 
 export default new FacialApi()

@@ -23,7 +23,8 @@ export async function uploadFaceImage(companyId: number, clientId: number, dataU
   const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType, upsert: true })
   if (error) throw new Error(error.message)
 
-  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
+  const { publicUrl } = supabase.storage.from(BUCKET).getPublicUrl(path).data
+  return `${publicUrl}?t=${Date.now()}`
 }
 
 /**

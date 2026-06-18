@@ -126,8 +126,11 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
           end_date: payment.end_date,
           is_active: true,
         },
-      }).catch(() => {
-        toast.warning('Registro guardado. Sin sincronización con reconocimiento facial.')
+      }).then((res) => {
+        if (res.data.warning) toast.warning(`Reconocimiento facial: ${res.data.warning}`)
+        else if (res.data.error) toast.error(`Reconocimiento facial: ${res.data.error}`)
+      }).catch((err: Error) => {
+        toast.warning(`Sin sincronización facial: ${err.message}`)
       })
 
       onClose()

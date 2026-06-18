@@ -195,8 +195,11 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
       )
 
       if (Object.keys(patch).length > 1) {
-        FacialApi.updateUser(patch as { supabase_user_id: number }).catch(() => {
-          toast.warning('Guardado. Sin sincronización con reconocimiento facial.')
+        FacialApi.updateUser(patch as { supabase_user_id: number }).then((res) => {
+          if (res.data.warning) toast.warning(`Reconocimiento facial: ${res.data.warning}`)
+          else if (res.data.error) toast.error(`Reconocimiento facial: ${res.data.error}`)
+        }).catch((err: Error) => {
+          toast.warning(`Sin sincronización facial: ${err.message}`)
         })
       }
 
@@ -313,8 +316,11 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
         FacialApi.updateUser({
           supabase_user_id:    client.id,
           profile_picture_url: imageUrl,
-        }).catch(() => {
-          toast.warning('Biométricos guardados. Sin sincronización con reconocimiento facial.')
+        }).then((res) => {
+          if (res.data.warning) toast.warning(`Reconocimiento facial: ${res.data.warning}`)
+          else if (res.data.error) toast.error(`Reconocimiento facial: ${res.data.error}`)
+        }).catch((err: Error) => {
+          toast.warning(`Sin sincronización facial: ${err.message}`)
         })
       }
 
