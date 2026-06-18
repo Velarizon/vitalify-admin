@@ -2,7 +2,6 @@ export interface FacialMembership {
   membership_type: string
   start_date: string
   end_date: string
-  is_active: boolean
 }
 
 export interface RegisterUserPayload {
@@ -34,7 +33,6 @@ export interface MembershipUpdatePayload {
   membership_type: string
   start_date: string
   end_date: string
-  is_active: boolean
 }
 
 export interface FacialSyncUserData {
@@ -52,6 +50,14 @@ export interface FacialSyncResponse {
   message: string
   status: number
   data: FacialSyncUserData
+  error_type: string | null
+}
+
+export interface FacialMembershipSyncResponse {
+  success: boolean
+  message: string
+  status: number
+  data: { user_id: number }
   error_type: string | null
 }
 
@@ -82,16 +88,17 @@ class FacialApi {
     return res.json()
   }
 
-  async updateMembership(payload: MembershipUpdatePayload): Promise<void> {
+  async updateMembership(payload: MembershipUpdatePayload): Promise<FacialMembershipSyncResponse> {
     const res = await fetch('/api/facial-sync/membership', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
     if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`FacialApi.updateMembership failed: ${text}`)
+      const json = await res.json().catch(() => null)
+      throw new Error(json?.message ?? 'Error al actualizar membresía en reconocimiento facial')
     }
+    return res.json()
   }
 }
 

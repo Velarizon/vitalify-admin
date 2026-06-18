@@ -86,7 +86,7 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
         shift_id: activeShift?.id ?? null,
       })
 
-      // 4. Terminal sync (non-blocking)
+      /* Terminal Hikvision — desactivado temporalmente
       try {
         const employeeNo = String(client.id)
         await Terminal.createPerson({
@@ -104,10 +104,11 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
         }
         if (biometric.fingerprintData) await Terminal.setUpFingerPrint(employeeNo, biometric.fingerprintData.fingerPrintData)
         await updateBrowserClient(client.id, syncUpdates)
-        toast.success('Registro completado exitosamente', { id: toastId })
       } catch {
-        toast.warning('Registro en DB exitoso. Error de sincronización local.', { id: toastId })
+        // terminal error
       }
+      */
+      toast.success('Registro completado exitosamente', { id: toastId })
 
       // 5. Facial recognition API sync (non-blocking)
       const planName = plans.find(p => p.id === payment.plan_id)?.name ?? ''
@@ -124,7 +125,6 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
           membership_type: planName,
           start_date: payment.start_date,
           end_date: payment.end_date,
-          is_active: true,
         },
       }).then((res) => {
         if (res.data.warning) toast.warning(`Reconocimiento facial: ${res.data.warning}`)

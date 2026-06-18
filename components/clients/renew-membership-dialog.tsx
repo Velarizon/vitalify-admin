@@ -15,6 +15,7 @@ import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import Terminal from '@/lib/terminal'
+import FacialApi from '@/lib/facial-api'
 import { toast } from 'sonner'
 import { add, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -135,6 +136,16 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
         payment_type: currentSubscription ? 'renewal' : 'new_subscription',
       })
 
+      FacialApi.updateMembership({
+        supabase_user_id: client.id,
+        membership_type:  selectedPlan.name,
+        start_date:       startDate,
+        end_date:         endDateValue,
+      }).catch((err: Error) => {
+        toast.warning(`Sin sincronización facial: ${err.message}`)
+      })
+
+      /* Terminal Hikvision — desactivado temporalmente
       try {
         await Terminal.updateEndDate({
           user_id: String(client.id),
@@ -146,6 +157,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
         onClose()
         return
       }
+      */
 
       toast.success('Membresía renovada exitosamente', { id: toastId })
       onSuccess()
