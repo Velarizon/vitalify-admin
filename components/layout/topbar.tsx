@@ -1,7 +1,7 @@
 // components/layout/topbar.tsx
 'use client'
 
-import { Activity, ArrowUpRight, Banknote, Clock, CreditCard, DoorOpen, LogOut, Menu, ReceiptText, RefreshCw, Repeat2, UserRoundPlus } from 'lucide-react'
+import { Activity, ArrowUpRight, Banknote, Clock, CreditCard, DoorOpen, LogOut, Menu, ReceiptText, RefreshCw, Repeat2, Ticket, UserRoundPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -196,7 +196,7 @@ export function Topbar({ activeShiftId, activeShiftOpenedAt, hasActiveShift, onO
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-4">
                   <ShiftMetric
                     label="Inscripciones"
                     value={String(shiftSummary?.newSubscriptionCount ?? 0)}
@@ -209,13 +209,18 @@ export function Topbar({ activeShiftId, activeShiftOpenedAt, hasActiveShift, onO
                     icon={Repeat2}
                   />
                   <ShiftMetric
+                    label="Visitas"
+                    value={String(shiftSummary?.visitCount ?? 0)}
+                    icon={Ticket}
+                  />
+                  <ShiftMetric
                     label="Pagos"
                     value={String(shiftSummary?.paymentCount ?? 0)}
                     icon={CreditCard}
                   />
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <ShiftMetric
                     label="Ingreso inscripciones"
                     value={fmtCurrency(shiftSummary?.newSubscriptionIncome ?? 0)}
@@ -224,6 +229,11 @@ export function Topbar({ activeShiftId, activeShiftOpenedAt, hasActiveShift, onO
                   <ShiftMetric
                     label="Ingreso renovaciones"
                     value={fmtCurrency(shiftSummary?.renewalIncome ?? 0)}
+                    icon={Banknote}
+                  />
+                  <ShiftMetric
+                    label="Ingreso visitas"
+                    value={fmtCurrency(shiftSummary?.visitIncome ?? 0)}
                     icon={Banknote}
                   />
                 </div>

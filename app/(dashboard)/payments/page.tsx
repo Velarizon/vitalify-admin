@@ -76,6 +76,15 @@ const columns: ColumnDef<Payment>[] = [
     )
   },
   {
+    header: 'Ticket',
+    cell: ({ row }) => {
+      const ticket = row.original.ticket_number
+      return ticket ? (
+        <span className="font-mono text-[10px] text-foreground">#{ticket}</span>
+      ) : <span className="text-muted-foreground/30 text-[10px]">N/A</span>
+    },
+  },
+  {
     header: 'Turno ID',
     cell: ({ row }) => {
       const shiftId = row.original.shift_id
