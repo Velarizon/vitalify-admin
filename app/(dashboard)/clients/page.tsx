@@ -7,11 +7,12 @@ import { DataTable } from '@/components/shared/data-table'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield } from 'lucide-react'
+import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield, Ticket } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
+import { ChargeVisitDialog } from '@/components/clients/charge-visit-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
 
 
@@ -62,6 +63,7 @@ export default function ClientsPage() {
   const [stats, setStats] = useState({ total: 0, active: 0, expired: 0 })
   const [clientSearch, setClientSearch] = useState<ClientSearchParams>({})
   const [showCreate, setShowCreate] = useState(false)
+  const [showVisit, setShowVisit] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [renewingClient, setRenewingClient] = useState<Client | null>(null)
 
@@ -192,13 +194,23 @@ export default function ClientsPage() {
           </div>
           <p className="text-technical tracking-[0.3em]">Gestión de Acceso y Membresías v2.4</p>
         </div>
-        <Button 
-          size="sm" 
-          className="h-10 px-6 text-[10px] uppercase font-black tracking-[0.2em] gap-2 bg-primary text-black hover:bg-primary/90 shadow-neon italic"
-          onClick={() => setShowCreate(true)}
-        >
-          <Plus size={14} className="stroke-[3px]" /> Registrar Nuevo Miembro
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-10 px-6 text-[10px] uppercase font-black tracking-[0.2em] gap-2 border-border/40 hover:bg-secondary transition-colors italic"
+            onClick={() => setShowVisit(true)}
+          >
+            <Ticket size={14} className="stroke-[3px]" /> Cobrar Visita
+          </Button>
+          <Button
+            size="sm"
+            className="h-10 px-6 text-[10px] uppercase font-black tracking-[0.2em] gap-2 bg-primary text-black hover:bg-primary/90 shadow-neon italic"
+            onClick={() => setShowCreate(true)}
+          >
+            <Plus size={14} className="stroke-[3px]" /> Registrar Nuevo Miembro
+          </Button>
+        </div>
       </div>
 
       {/* Top Metrics Area */}
@@ -256,6 +268,11 @@ export default function ClientsPage() {
         client={renewingClient}
         open={!!renewingClient}
         onClose={() => setRenewingClient(null)}
+        onSuccess={load}
+      />
+      <ChargeVisitDialog
+        open={showVisit}
+        onClose={() => setShowVisit(false)}
         onSuccess={load}
       />
     </div>

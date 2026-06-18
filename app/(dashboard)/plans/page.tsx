@@ -9,10 +9,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { getBrowserPlansPage, toggleBrowserPlanActive, upsertBrowserPlan } from '@/lib/supabase/browser-catalogs'
+import {
+  getBrowserDayVisitPrice,
+  getBrowserPlansPage,
+  toggleBrowserPlanActive,
+  updateBrowserDayVisitPrice,
+  upsertBrowserPlan,
+} from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
-import { Plus, Pencil, Clock, CreditCard, ShieldCheck, Zap } from 'lucide-react'
+import { Plus, Pencil, Clock, CreditCard, ShieldCheck, Zap, Ticket } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
@@ -62,6 +68,9 @@ export default function PlansPage() {
   const [totalRows, setTotalRows] = useState(0)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 300)
+  const [visitDialogOpen, setVisitDialogOpen] = useState(false)
+  const [visitPrice, setVisitPrice] = useState('')
+  const [savingVisitPrice, setSavingVisitPrice] = useState(false)
 
   const loadPlans = useCallback(async () => {
     if (!userData) return
@@ -154,6 +163,33 @@ export default function PlansPage() {
   const fmt = (n: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
+  const openVisitPriceDialog = async () => {
+    if (!userData) return
+    setVisitDialogOpen(true)
+    try {
+      const price = await getBrowserDayVisitPrice(userData.company.id)
+      setVisitPrice(price != null ? String(price) : '')
+    } catch (error) {
+      toast.error((error as Error).message)
+    }
+  }
+
+  const handleSaveVisitPrice = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!userData) return
+
+    setSavingVisitPrice(true)
+    try {
+      await updateBrowserDayVisitPrice(userData.company.id, Number(visitPrice))
+      toast.success('Precio de visita actualizado')
+      setVisitDialogOpen(false)
+    } catch (error) {
+      toast.error((error as Error).message)
+    } finally {
+      setSavingVisitPrice(false)
+    }
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -161,9 +197,19 @@ export default function PlansPage() {
           <h1 className="text-xl font-heading font-bold tracking-tight">Catálogo de Planes</h1>
           <p className="text-technical tracking-widest uppercase">Estrategia de Membresías</p>
         </div>
-        <Button size="sm" className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={openCreate}>
-          <Plus size={14} /> Nuevo Plan
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 border-border/40 hover:bg-secondary transition-colors"
+            onClick={openVisitPriceDialog}
+          >
+            <Ticket size={14} /> Precio de Visita
+          </Button>
+          <Button size="sm" className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest gap-2 bg-primary text-primary-foreground shadow-neon" onClick={openCreate}>
+            <Plus size={14} /> Nuevo Plan
+          </Button>
+        </div>
       </div>
 
       {loading ? <TableSkeleton /> : (
@@ -358,6 +404,44 @@ export default function PlansPage() {
               </Button>
               <Button type="submit" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon" disabled={saving}>
                 {saving ? 'Procesando...' : form.id ? 'Guardar Cambios' : 'Confirmar Plan'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen}>
+        <DialogContent className="sm:max-w-sm bg-card border-border/40">
+          <DialogHeader>
+            <DialogTitle className="font-heading font-bold text-lg uppercase tracking-tight">
+              Precio de Visita
+            </DialogTitle>
+          </DialogHeader>
+
+          <form className="space-y-4 pt-4" onSubmit={handleSaveVisitPrice}>
+            <div className="space-y-2">
+              <Label htmlFor="visit-price" className="text-technical">Costo del pase de un día (MXN)</Label>
+              <div className="relative">
+                <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="visit-price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={visitPrice}
+                  onChange={(event) => setVisitPrice(event.target.value)}
+                  required
+                  className="pl-9 bg-background/50 border-border"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest" onClick={() => setVisitDialogOpen(false)}>
+                Descartar
+              </Button>
+              <Button type="submit" size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground shadow-neon" disabled={savingVisitPrice}>
+                {savingVisitPrice ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>
           </form>
