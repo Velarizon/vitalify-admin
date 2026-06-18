@@ -210,6 +210,23 @@ export async function toggleBrowserPlanActive(planId: number, isActive: boolean)
   if (error) throw new Error(error.message)
 }
 
+export interface CompanyVitalify {
+  vitalify_id: number | null
+  vitalify_email: string | null
+  vitalify_password: string | null
+}
+
+export async function getBrowserCompanyVitalify(companyId: number): Promise<CompanyVitalify> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('companies')
+    .select('vitalify_id, vitalify_email, vitalify_password' as never)
+    .eq('id', companyId)
+    .single()
+  if (error) throw new Error(error.message)
+  return data as unknown as CompanyVitalify
+}
+
 export async function getBrowserLocations(companyId: number): Promise<LocationRow[]> {
   const supabase = createClient()
   const { data, error } = await supabase
