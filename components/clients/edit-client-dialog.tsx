@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, ShieldCheck, WifiOff, Loader2, UserMinus, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Terminal, { FingerprintCapture } from '@/lib/terminal'
-import FacialApi from '@/lib/facial-api'
+import FacialApi, { type FacialUserStatusData } from '@/lib/facial-api'
 
 interface Subscription {
   id: number
@@ -113,6 +113,11 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
   const [isSynced, setIsSynced] = useState(false)
   const [terminalLoading, setTerminalLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState<'baja' | 'alta' | null>(null)
+  const [facialStatus, setFacialStatus] = useState<FacialUserStatusData | null>(null)
+  const [facialStatusLoading, setFacialStatusLoading] = useState(false)
+  const [facialStatusError, setFacialStatusError] = useState<string | null>(null)
+  const [facialApiOffline, setFacialApiOffline] = useState(false)
+  const [facialStatusLoadedFor, setFacialStatusLoadedFor] = useState<number | null>(null)
 
   useEffect(() => {
     if (client) {
@@ -131,6 +136,10 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
         setPayments([])
         setPaymentsLoadedFor(null)
         setIsSynced(client.is_sync ?? false)
+        setFacialStatus(null)
+        setFacialStatusError(null)
+        setFacialApiOffline(false)
+        setFacialStatusLoadedFor(null)
       }, 0)
 
       return () => window.clearTimeout(timeoutId)
@@ -146,6 +155,36 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
 
     return () => window.clearTimeout(timeoutId)
   }, [open])
+
+  useEffect(() => {
+    if (!open || activeTab !== 'biometrics' || !client || facialStatusLoadedFor === client.id) return
+
+    let cancelled = false
+    setFacialStatusLoading(true)
+
+    FacialApi.getUserStatus(client.id)
+      .then((res) => {
+        if (cancelled) return
+        if (res.data.status === 'ok') {
+          setFacialStatus(res.data)
+          setFacialStatusError(null)
+          setFacialApiOffline(false)
+        } else {
+          setFacialStatusError(res.data.message)
+          setFacialApiOffline(false)
+        }
+        setFacialStatusLoadedFor(client.id)
+      })
+      .catch((err: Error & { errorType?: string }) => {
+        if (cancelled) return
+        setFacialStatusError(err.message)
+        setFacialApiOffline(err.errorType === 'CONNECTION_ERROR')
+        setFacialStatusLoadedFor(client.id)
+      })
+      .finally(() => { if (!cancelled) setFacialStatusLoading(false) })
+
+    return () => { cancelled = true }
+  }, [open, activeTab, client, facialStatusLoadedFor])
 
   useEffect(() => {
     if (!open || activeTab !== 'payments' || !client || paymentsLoadedFor === client.id) return
@@ -489,6 +528,44 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                     </p>
                   </div>
                 </div>
+              )}
+
+              {facialStatusLoading && (
+                <div className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 p-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">Facial API</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Cargando información biométrica...</p>
+                  </div>
+                </div>
+              )}
+              {!facialStatusLoading && facialStatus && (
+                <div className="flex items-start gap-3 rounded-lg border border-primary/25 bg-primary/10 p-3">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-primary shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">Sincronización facial activa</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Usuario correctamente sincronizado con Facial API.</p>
+                  </div>
+                </div>
+              )}
+              {!facialStatusLoading && facialStatusError && (
+                facialApiOffline ? (
+                  <div className="flex items-start gap-3 rounded-lg border border-destructive/25 bg-destructive/10 p-3">
+                    <WifiOff className="mt-0.5 h-4 w-4 text-destructive shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-destructive">Facial API sin conexión</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{facialStatusError}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-lg border border-[#FF9F0A]/25 bg-[#FF9F0A]/10 p-3">
+                    <WifiOff className="mt-0.5 h-4 w-4 text-[#FF9F0A] shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#FF9F0A]">Sin sincronización facial</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{facialStatusError}</p>
+                    </div>
+                  </div>
+                )
               )}
 
               <div className="grid gap-5 md:grid-cols-[1.1fr_0.9fr]">

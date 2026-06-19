@@ -61,6 +61,23 @@ export interface FacialMembershipSyncResponse {
   error_type: string | null
 }
 
+export interface FacialUserStatusData {
+  status: string
+  message: string
+  has_image: boolean
+  has_embedding: boolean
+  user_id: number
+  supabase_user_id: number
+}
+
+export interface FacialUserStatusResponse {
+  success: boolean
+  message: string
+  status: number
+  data: FacialUserStatusData
+  error_type: string | null
+}
+
 class FacialApi {
   async registerUser(payload: RegisterUserPayload): Promise<FacialSyncResponse> {
     const res = await fetch('/api/facial-sync', {
@@ -84,6 +101,21 @@ class FacialApi {
     if (!res.ok) {
       const json = await res.json().catch(() => null)
       throw new Error(json?.message ?? 'Error al actualizar usuario en reconocimiento facial')
+    }
+    return res.json()
+  }
+
+  async getUserStatus(supabase_user_id: number): Promise<FacialUserStatusResponse> {
+    const res = await fetch('/api/facial-sync/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supabase_user_id }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      const err = new Error(json?.message ?? 'Error al obtener estatus del usuario en reconocimiento facial') as Error & { errorType?: string }
+      err.errorType = json?.error_type ?? null
+      throw err
     }
     return res.json()
   }

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     })
   } catch {
     return NextResponse.json(
-      { success: false, message: 'RecFacialApi no disponible. Verifica que el servicio esté en línea.', status: 503, data: null, error_type: 'CONNECTION_ERROR' },
+      { success: false, message: 'Facial API no disponible. Verifica que el servicio esté en línea.', status: 503, data: null, error_type: 'CONNECTION_ERROR' },
       { status: 503 }
     )
   }
@@ -59,7 +59,7 @@ export async function PATCH(request: Request) {
     })
   } catch {
     return NextResponse.json(
-      { success: false, message: 'RecFacialApi no disponible. Verifica que el servicio esté en línea.', status: 503, data: null, error_type: 'CONNECTION_ERROR' },
+      { success: false, message: 'Facial API no disponible. Verifica que el servicio esté en línea.', status: 503, data: null, error_type: 'CONNECTION_ERROR' },
       { status: 503 }
     )
   }
