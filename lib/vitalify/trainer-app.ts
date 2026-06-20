@@ -54,6 +54,8 @@ export function registerTrainer(email: string, password: string): Promise<Regist
 
 export interface CreateGymMemberResult {
   clientId: number
+  trainerClientId: number
+  membershipId: number | null
   auth: {
     email: string
     temporaryPassword: string | null
@@ -68,6 +70,13 @@ export function createGymMember(input: {
   lastName: string
   email: string
   phone?: string | null
+  // membership period
+  startDate?: string | null
+  endDate?: string | null
+  planDuration?: string | null
+  amount?: number | null
+  currency?: 'MXN' | 'USD' | null
+  paymentMethod?: string | null
 }): Promise<CreateGymMemberResult> {
   if (!SECRET) {
     throw new Error('Integración Vitalify no configurada (falta VITALIFY_INTEGRATION_SECRET)')

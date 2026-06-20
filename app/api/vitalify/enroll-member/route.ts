@@ -10,7 +10,10 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-    const { companyId, firstName, lastName, email, phone } = await request.json()
+    const {
+      companyId, firstName, lastName, email, phone,
+      startDate, endDate, planDuration, amount, currency, paymentMethod,
+    } = await request.json()
     if (!companyId) return NextResponse.json({ error: 'companyId requerido' }, { status: 400 })
     if (!firstName?.trim() || !lastName?.trim() || !email?.trim()) {
       return NextResponse.json({ error: 'Nombre, apellido y email son requeridos' }, { status: 400 })
@@ -34,6 +37,12 @@ export async function POST(request: Request) {
       lastName: String(lastName).trim(),
       email: String(email).trim().toLowerCase(),
       phone: phone ?? null,
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
+      planDuration: planDuration ?? null,
+      amount: amount ?? null,
+      currency: currency ?? 'MXN',
+      paymentMethod: paymentMethod ?? null,
     })
 
     return NextResponse.json({

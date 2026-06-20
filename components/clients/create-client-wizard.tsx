@@ -123,6 +123,12 @@ export function CreateClientWizard({ open, onClose, plans, gymRegistered = false
               lastName: personal.last_name,
               email: personal.email,
               phone: personal.phone_number,
+              startDate: payment.start_date,
+              endDate: payment.end_date,
+              planDuration: plans.find(p => p.id === payment.plan_id)?.duration ?? null,
+              amount: MOBILE_APP_ADDON_PRICE, // Vitalify only charges the app add-on; the plan price is the gym's
+              currency: 'MXN',
+              paymentMethod: payment.payment_method,
             }),
           })
           const result = await res.json()
