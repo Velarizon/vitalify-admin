@@ -276,6 +276,7 @@ export default function ClientsPage() {
         open={!!renewingClient}
         onClose={() => setRenewingClient(null)}
         onSuccess={load}
+        gymRegistered={gymRegistered}
       />
       <ChargeVisitDialog
         open={showVisit}

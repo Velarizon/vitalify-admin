@@ -18,8 +18,11 @@ import Terminal from '@/lib/terminal'
 import { toast } from 'sonner'
 import { add, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Banknote, CreditCard, ArrowLeftRight, CheckCircle2 } from 'lucide-react'
+import { Banknote, CreditCard, ArrowLeftRight, CheckCircle2, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Switch } from '@/components/ui/switch'
+import { MOBILE_APP_ADDON_PRICE } from './step-plan-payment'
+import { VitalifyInviteDialog, VitalifyInvite } from './vitalify-invite-dialog'
 
 interface Props {
   client: {
@@ -28,6 +31,8 @@ interface Props {
     start_date?: string | null
     name: string | null
     last_name: string | null
+    email?: string | null
+    phone_number?: string | null
     subscriptions?: {
       id: number
       plan_id?: number | null
@@ -38,6 +43,7 @@ interface Props {
   open: boolean
   onClose: () => void
   onSuccess: () => void
+  gymRegistered?: boolean
 }
 
 const PAYMENT_METHODS = [
@@ -48,13 +54,19 @@ const PAYMENT_METHODS = [
 
 const terminalDate = (date: string) => `${date}T23:59:59.000Z`
 
-export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Props) {
+export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymRegistered = false }: Props) {
   const { userData } = useAuthStore()
   const { selectedLocation } = usePreferencesStore()
   const [loading, setLoading] = useState(false)
   const [plans, setPlans] = useState<any[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
   const [paymentMethod, setPaymentMethod] = useState<string>('cash')
+  const [mobileApp, setMobileApp] = useState(false)
+  const [invite, setInvite] = useState<VitalifyInvite | null>(null)
+
+  // App Móvil can only be offered if the gym is registered AND we have an email
+  // to enroll the member with.
+  const canMobileApp = gymRegistered && !!client?.email
 
   const selectedPlan = plans.find(p => String(p.id) === selectedPlanId)
 
@@ -72,12 +84,13 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
     }
   }, [open, userData, client])
 
-  // Reset state when dialog closes
+  // Reset state when dialog closes (keep `invite` so its dialog can show after close)
   useEffect(() => {
     if (!open) {
       setSelectedPlanId('')
       setPaymentMethod('cash')
       setPlans([])
+      setMobileApp(false)
     }
   }, [open])
 
@@ -126,30 +139,68 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
           end_date: endDateValue,
         })
 
+      const addMobileApp = mobileApp && canMobileApp
       await createBrowserPayment({
         subscription_id: subscription.id,
-        amount: planPrice,
+        amount: planPrice + (addMobileApp ? MOBILE_APP_ADDON_PRICE : 0),
         payment_method: paymentMethod,
         location_id: selectedLocation.location.id,
         shift_id: activeShift?.id || null,
         payment_type: currentSubscription ? 'renewal' : 'new_subscription',
       })
 
+      // Terminal date update (non-blocking)
+      let terminalWarned = false
       try {
         await Terminal.updateEndDate({
           user_id: String(client.id),
           end_date: terminalDate(endDateValue),
         })
       } catch {
-        toast.warning('Membresía renovada. No se pudo actualizar la fecha en la terminal.', { id: toastId })
-        onSuccess()
-        onClose()
-        return
+        terminalWarned = true
       }
 
-      toast.success('Membresía renovada exitosamente', { id: toastId })
+      // Vitalify (App Móvil) enrollment (non-blocking) — idempotent on re-enroll
+      let inviteToShow: VitalifyInvite | null = null
+      if (addMobileApp) {
+        try {
+          const res = await fetch('/api/vitalify/enroll-member', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyId: userData.company.id,
+              firstName: client.name ?? '',
+              lastName: client.last_name ?? '',
+              email: client.email,
+              phone: client.phone_number ?? null,
+              startDate,
+              endDate: endDateValue,
+              planDuration: selectedPlan.duration ?? null,
+              amount: MOBILE_APP_ADDON_PRICE, // Vitalify only charges the app add-on; the plan price is the gym's
+              currency: 'MXN',
+              paymentMethod,
+            }),
+          })
+          const result = await res.json()
+          if (!res.ok) throw new Error(result.error ?? 'No se pudo registrar en la app')
+          inviteToShow = {
+            name: `${client.name ?? ''} ${client.last_name ?? ''}`.trim(),
+            email: client.email!,
+            code: result.temporaryPassword ?? null,
+            phone: client.phone_number ?? null,
+          }
+        } catch (e: any) {
+          toast.warning(`Renovación completa, pero falló el registro en Vitalify: ${e.message}`, { duration: 8000 })
+        }
+      }
+
+      toast.success(
+        terminalWarned ? 'Membresía renovada. No se pudo actualizar la fecha en la terminal.' : 'Membresía renovada exitosamente',
+        { id: toastId },
+      )
       onSuccess()
       onClose()
+      if (inviteToShow) setInvite(inviteToShow)
     } catch (e: any) {
       toast.error(e.message, { id: toastId })
     } finally {
@@ -164,6 +215,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
   const clientCode = `#VTL-${client?.id.toString().padStart(5, '0')}`
 
   return (
+    <>
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-md bg-card border-border/40 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         <DialogHeader className="pb-2">
@@ -220,13 +272,45 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
             </div>
           </div>
 
+          {/* Mobile app add-on — only when the gym is registered and client has email */}
+          {canMobileApp && (
+            <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/30 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+                  <Smartphone className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold text-foreground">Complemento App Móvil</p>
+                  <p className="text-xs text-muted-foreground">
+                    Acceso a la aplicación móvil · +{fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+                  </p>
+                </div>
+              </div>
+              <Switch checked={mobileApp} onCheckedChange={setMobileApp} />
+            </div>
+          )}
+
           {/* Summary */}
           {selectedPlan && nextEndDate && (
             <div className="rounded-lg border border-border/30 bg-secondary/20 divide-y divide-border/20 animate-in fade-in duration-200">
               <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">Plan</span>
+                <span className="text-xs font-semibold text-foreground font-mono">
+                  {fmtCurrency(selectedPlan.price ?? 0)}
+                </span>
+              </div>
+              {mobileApp && canMobileApp && (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-xs text-muted-foreground">Complemento App Móvil</span>
+                  <span className="text-xs font-semibold text-foreground font-mono">
+                    {fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-xs text-muted-foreground">Total a pagar</span>
                 <span className="text-lg font-bold text-primary font-mono">
-                  {fmtCurrency(selectedPlan.price ?? 0)}
+                  {fmtCurrency((selectedPlan.price ?? 0) + (mobileApp && canMobileApp ? MOBILE_APP_ADDON_PRICE : 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
@@ -258,5 +342,8 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess }: Prop
         </div>
       </DialogContent>
     </Dialog>
+
+    <VitalifyInviteDialog invite={invite} onClose={() => setInvite(null)} />
+    </>
   )
 }
