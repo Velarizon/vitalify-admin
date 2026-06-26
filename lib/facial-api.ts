@@ -14,7 +14,7 @@ export interface RegisterUserPayload {
   birth_date?: string | null
   profile_picture_url?: string | null
   user_image_base64?: string | null
-  membership: FacialMembership
+  membership?: FacialMembership
 }
 
 export interface UpdateUserPatch {
@@ -61,8 +61,10 @@ export interface FacialMembershipSyncResponse {
   error_type: string | null
 }
 
+export type FacialBiometricStatus = 'ok' | 'not_found' | 'no_image' | 'no_embedding'
+
 export interface FacialUserStatusData {
-  status: string
+  status: FacialBiometricStatus
   message: string
   has_image: boolean
   has_embedding: boolean

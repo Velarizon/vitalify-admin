@@ -118,6 +118,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
   const [facialStatusError, setFacialStatusError] = useState<string | null>(null)
   const [facialApiOffline, setFacialApiOffline] = useState(false)
   const [facialStatusLoadedFor, setFacialStatusLoadedFor] = useState<number | null>(null)
+  const [registeringFacial, setRegisteringFacial] = useState(false)
 
   useEffect(() => {
     if (client) {
@@ -165,14 +166,9 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
     FacialApi.getUserStatus(client.id)
       .then((res) => {
         if (cancelled) return
-        if (res.data.status === 'ok') {
-          setFacialStatus(res.data)
-          setFacialStatusError(null)
-          setFacialApiOffline(false)
-        } else {
-          setFacialStatusError(res.data.message)
-          setFacialApiOffline(false)
-        }
+        setFacialStatus(res.data)
+        setFacialStatusError(null)
+        setFacialApiOffline(false)
         setFacialStatusLoadedFor(client.id)
       })
       .catch((err: Error & { errorType?: string }) => {
@@ -372,6 +368,52 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
     }
   }
 
+  const handleRegisterFacial = async () => {
+    if (!client || !userData) return
+    setRegisteringFacial(true)
+    const toastId = toast.loading('Registrando usuario en Facial API...')
+
+    try {
+      // La foto puede ser un data URI recién capturado o una URL de Storage ya guardada.
+      let profileUrl: string | null = null
+      if (faceImage?.startsWith('data:')) {
+        profileUrl = await uploadFaceImage(userData.company.id, client.id, faceImage)
+        await updateBrowserClient(client.id, { image_url: profileUrl })
+        setFaceImage(profileUrl)
+      } else if (faceImage) {
+        profileUrl = faceImage
+      }
+
+      const sub = client.subscriptions?.[0]
+      const membership = sub?.start_date && sub?.end_date
+        ? { membership_type: sub.plans?.name ?? 'Membresía', start_date: sub.start_date, end_date: sub.end_date }
+        : undefined
+
+      const res = await FacialApi.registerUser({
+        supabase_user_id:    client.id,
+        email:               client.email ?? '',
+        first_name:          client.name ?? '',
+        last_name:           client.last_name ?? '',
+        phone_number:        client.phone_number,
+        gender:              client.gender,
+        birth_date:          client.date_of_birth,
+        profile_picture_url: profileUrl,
+        membership,
+      })
+
+      if (res.data.warning) toast.warning(`Registrado con advertencia: ${res.data.warning}`, { id: toastId })
+      else toast.success('Usuario registrado en Facial API', { id: toastId })
+
+      // Recargar el estatus biométrico para reflejar el nuevo estado
+      setFacialStatusLoadedFor(null)
+      onSuccess()
+    } catch (err) {
+      toast.error((err as Error).message, { id: toastId })
+    } finally {
+      setRegisteringFacial(false)
+    }
+  }
+
   const subscription = client?.subscriptions?.[0]
   const isExpired = subscription ? new Date() > new Date(subscription.end_date ?? 0) : false
 
@@ -539,12 +581,27 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   </div>
                 </div>
               )}
-              {!facialStatusLoading && facialStatus && (
+              {!facialStatusLoading && facialStatus?.status === 'ok' && (
                 <div className="flex items-start gap-3 rounded-lg border border-primary/25 bg-primary/10 p-3">
                   <ShieldCheck className="mt-0.5 h-4 w-4 text-primary shrink-0" />
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-primary">Sincronización facial activa</p>
                     <p className="mt-1 text-xs text-muted-foreground">Usuario correctamente sincronizado con Facial API.</p>
+                  </div>
+                </div>
+              )}
+              {!facialStatusLoading && facialStatus && facialStatus.status !== 'ok' && (
+                <div className="flex items-start gap-3 rounded-lg border border-[#FF9F0A]/25 bg-[#FF9F0A]/10 p-3">
+                  <WifiOff className="mt-0.5 h-4 w-4 text-[#FF9F0A] shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#FF9F0A]">
+                      {facialStatus.status === 'not_found'
+                        ? 'Usuario no registrado en Facial API'
+                        : facialStatus.status === 'no_image'
+                          ? 'Registrado sin imagen'
+                          : 'Imagen sin rostro válido'}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{facialStatus.message}</p>
                   </div>
                 </div>
               )}
@@ -644,6 +701,23 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   >
                     {savingBiometrics ? 'Sincronizando...' : 'Guardar biométricos'}
                   </Button>
+
+                  {facialStatus?.status === 'not_found' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 w-full text-[10px] uppercase font-black tracking-widest gap-2 border-primary/40 text-primary hover:bg-primary/10"
+                      onClick={handleRegisterFacial}
+                      disabled={registeringFacial}
+                    >
+                      {registeringFacial ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Registrando...</>
+                      ) : (
+                        <><UserPlus className="h-3.5 w-3.5" /> Registrar usuario en Facial API</>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </TabsContent>
