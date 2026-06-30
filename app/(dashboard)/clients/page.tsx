@@ -16,11 +16,12 @@ import { ChargeVisitDialog } from '@/components/clients/charge-visit-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
 
 
-import { 
-  getBrowserActivePlans, 
-  getBrowserClientsPage, 
-  searchBrowserClients,    
-  ClientSearchParams        
+import {
+  getBrowserActivePlans,
+  getBrowserClientsPage,
+  searchBrowserClients,
+  ClientSearchParams,
+  getBrowserCompanyVitalify
 } from '@/lib/supabase/browser-catalogs'
 
 import { ClientSearchBar } from '@/components/clients/client-search-bar'
@@ -66,6 +67,7 @@ export default function ClientsPage() {
   const [showVisit, setShowVisit] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [renewingClient, setRenewingClient] = useState<Client | null>(null)
+  const [gymRegistered, setGymRegistered] = useState(false)
 
   const load = useCallback(async () => {
   if (!userData) return
@@ -105,6 +107,10 @@ export default function ClientsPage() {
         duration: p.duration ? String(p.duration) : null,
       })))
     })
+
+    void getBrowserCompanyVitalify(userData.company.id)
+      .then((data) => setGymRegistered(!!data.vitalify_id))
+      .catch(() => setGymRegistered(false))
   }, [userData])
 
   const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
@@ -257,6 +263,7 @@ export default function ClientsPage() {
         open={showCreate}
         onClose={() => { setShowCreate(false); load() }}
         plans={plans}
+        gymRegistered={gymRegistered}
       />
       <EditClientDialog
         client={editingClient}
@@ -269,6 +276,7 @@ export default function ClientsPage() {
         open={!!renewingClient}
         onClose={() => setRenewingClient(null)}
         onSuccess={load}
+        gymRegistered={gymRegistered}
       />
       <ChargeVisitDialog
         open={showVisit}

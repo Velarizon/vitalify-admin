@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { WizardStepper } from './wizard-stepper'
 import { StepPersonal, PersonalData } from './step-personal'
 import { StepBiometrics, BiometricData } from './step-biometrics'
-import { StepPlanPayment, PaymentData } from './step-plan-payment'
+import { StepPlanPayment, PaymentData, MOBILE_APP_ADDON_PRICE } from './step-plan-payment'
+import { VitalifyInviteDialog, VitalifyInvite } from './vitalify-invite-dialog'
 import { createBrowserClientRecord, createBrowserPayment, createBrowserSubscription, updateBrowserClient } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
@@ -21,17 +22,18 @@ interface Props {
   open: boolean
   onClose: () => void
   plans: { id: number; name: string; price: number | null; duration: string | null }[]
+  gymRegistered?: boolean
 }
 
 const STEPS = ['IDENTIDAD', 'BIOMETRÍA', 'MEMBRESÍA']
 
 const emptyPersonal: PersonalData = { name: '', last_name: '', email: '', phone_number: '', date_of_birth: '', gender: 'M' }
 const emptyBiometric: BiometricData = { faceImage: null, fingerprintData: null }
-const emptyPayment: PaymentData = { plan_id: 0, payment_method: '', start_date: '', end_date: '', receipt_image: null }
+const emptyPayment: PaymentData = { plan_id: 0, payment_method: '', start_date: '', end_date: '', receipt_image: null, mobile_app: false }
 const terminalDate = (date: string, time: 'start' | 'end') =>
   `${date}T${time === 'start' ? '00:00:00' : '23:59:59'}.000Z`
 
-export function CreateClientWizard({ open, onClose, plans }: Props) {
+export function CreateClientWizard({ open, onClose, plans, gymRegistered = false }: Props) {
   const { userData } = useAuthStore()
   const { selectedLocation } = usePreferencesStore()
   const [step, setStep] = useState(0)
@@ -39,6 +41,7 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
   const [biometric, setBiometric] = useState<BiometricData>(emptyBiometric)
   const [payment, setPayment] = useState<PaymentData>(emptyPayment)
   const [saving, setSaving] = useState(false)
+  const [invite, setInvite] = useState<VitalifyInvite | null>(null)
 
   const canNext = () => {
     if (step === 0) return !!(personal.name && personal.last_name && personal.email)
@@ -76,9 +79,10 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
 
       // 3. Insert payment
       const activeShift = await getBrowserActiveShift(selectedLocation.location.id)
+      const planPrice = plans.find(p => p.id === payment.plan_id)?.price ?? 0
       await createBrowserPayment({
         subscription_id: subscription.id,
-        amount: plans.find(p => p.id === payment.plan_id)?.price ?? 0,
+        amount: planPrice + (payment.mobile_app ? MOBILE_APP_ADDON_PRICE : 0),
         payment_method: payment.payment_method,
         location_id: selectedLocation.location.id,
         shift_id: activeShift?.id ?? null,
@@ -107,6 +111,39 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
         toast.warning('Registro en DB exitoso. Error de sincronización local.', { id: toastId })
       }
 
+      // 5. Vitalify (App Móvil) enrollment — non-blocking, only with add-on
+      if (payment.mobile_app && gymRegistered) {
+        try {
+          const res = await fetch('/api/vitalify/enroll-member', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyId: userData.company.id,
+              firstName: personal.name,
+              lastName: personal.last_name,
+              email: personal.email,
+              phone: personal.phone_number,
+              startDate: payment.start_date,
+              endDate: payment.end_date,
+              planDuration: plans.find(p => p.id === payment.plan_id)?.duration ?? null,
+              amount: MOBILE_APP_ADDON_PRICE, // Vitalify only charges the app add-on; the plan price is the gym's
+              currency: 'MXN',
+              paymentMethod: payment.payment_method,
+            }),
+          })
+          const result = await res.json()
+          if (!res.ok) throw new Error(result.error ?? 'No se pudo registrar en la app')
+          setInvite({
+            name: `${personal.name} ${personal.last_name}`.trim(),
+            email: personal.email,
+            code: result.temporaryPassword ?? null,
+            phone: personal.phone_number || null,
+          })
+        } catch (e) {
+          toast.warning(`Alta completada, pero falló el registro en Vitalify: ${(e as Error).message}`, { duration: 8000 })
+        }
+      }
+
       onClose()
       setStep(0); setPersonal(emptyPersonal); setBiometric(emptyBiometric); setPayment(emptyPayment)
     } catch (e: unknown) {
@@ -117,6 +154,7 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
   }
 
   return (
+    <>
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent className="w-full sm:w-[500px] bg-background border-l border-border/40 p-0 flex flex-col">
         <SheetHeader className="p-6 border-b border-border/20">
@@ -145,7 +183,7 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
             <div className="animate-in slide-in-from-right-4 fade-in duration-300">
               {step === 0 && <StepPersonal data={personal} onChange={setPersonal} />}
               {step === 1 && <StepBiometrics data={biometric} onChange={setBiometric} />}
-              {step === 2 && <StepPlanPayment data={payment} onChange={setPayment} plans={plans} />}
+              {step === 2 && <StepPlanPayment data={payment} onChange={setPayment} plans={plans} gymRegistered={gymRegistered} />}
             </div>
           </div>
         </div>
@@ -182,5 +220,8 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
         </div>
       </SheetContent>
     </Sheet>
+
+    <VitalifyInviteDialog invite={invite} onClose={() => setInvite(null)} />
+    </>
   )
 }
