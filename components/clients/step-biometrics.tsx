@@ -4,12 +4,13 @@
 import { useState, useRef, useCallback } from 'react'
 import Webcam from 'react-webcam'
 import { Button } from '@/components/ui/button'
-import { Camera, Fingerprint, RotateCcw } from 'lucide-react'
+import { Camera, Fingerprint, RotateCcw, Check } from 'lucide-react'
 import Terminal, { FingerprintCapture } from '@/lib/terminal'
 
 export interface BiometricData {
   faceImage: string | null
   fingerprintData: FingerprintCapture | null
+  syncFacial: boolean
 }
 
 interface Props {
@@ -83,6 +84,25 @@ export function StepBiometrics({ data, onChange }: Props) {
           </div>
         )}
       </div>
+
+      {/* Sincronización con Facial API */}
+      <label className="group flex items-start gap-3 cursor-pointer select-none rounded-lg border p-3 transition-all duration-200 border-border/40 bg-secondary/20 hover:bg-secondary/30 has-[:checked]:border-primary/40 has-[:checked]:bg-primary/10 has-[:checked]:shadow-neon">
+        <input
+          type="checkbox"
+          checked={data.syncFacial}
+          onChange={(e) => onChange({ ...data, syncFacial: e.target.checked })}
+          className="peer sr-only"
+        />
+        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border bg-background/40 transition-all duration-200 border-border/60 peer-checked:border-primary peer-checked:bg-primary peer-checked:shadow-neon peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40">
+          <Check className="h-3 w-3 text-primary-foreground opacity-0 transition-opacity duration-200 group-has-[:checked]:opacity-100" strokeWidth={3.5} />
+        </span>
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground transition-colors group-has-[:checked]:text-primary">
+            Sincronizar con Facial API
+          </p>
+          <p className="text-[10px] text-muted-foreground">Registra al miembro en el reconocimiento facial al finalizar el alta.</p>
+        </div>
+      </label>
     </div>
   )
 }

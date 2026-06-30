@@ -27,7 +27,7 @@ interface Props {
 const STEPS = ['IDENTIDAD', 'BIOMETRÍA', 'MEMBRESÍA']
 
 const emptyPersonal: PersonalData = { name: '', last_name: '', email: '', phone_number: '', date_of_birth: '', gender: 'M' }
-const emptyBiometric: BiometricData = { faceImage: null, fingerprintData: null }
+const emptyBiometric: BiometricData = { faceImage: null, fingerprintData: null, syncFacial: true }
 const emptyPayment: PaymentData = { plan_id: 0, payment_method: '', start_date: '', end_date: '', receipt_image: null }
 const terminalDate = (date: string, time: 'start' | 'end') =>
   `${date}T${time === 'start' ? '00:00:00' : '23:59:59'}.000Z`
@@ -110,28 +110,30 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
       */
       toast.success('Registro completado exitosamente', { id: toastId })
 
-      // 5. Facial recognition API sync (non-blocking)
-      const planName = plans.find(p => p.id === payment.plan_id)?.name ?? ''
-      FacialApi.registerUser({
-        supabase_user_id: client.id,
-        email: personal.email,
-        first_name: personal.name,
-        last_name: personal.last_name,
-        phone_number: personal.phone_number || null,
-        gender: personal.gender || null,
-        birth_date: personal.date_of_birth || null,
-        profile_picture_url: uploadedImageUrl,
-        membership: {
-          membership_type: planName,
-          start_date: payment.start_date,
-          end_date: payment.end_date,
-        },
-      }).then((res) => {
-        if (res.data.warning) toast.warning(`Reconocimiento facial: ${res.data.warning}`)
-        else if (res.data.error) toast.error(`Reconocimiento facial: ${res.data.error}`)
-      }).catch((err: Error) => {
-        toast.warning(`Sin sincronización facial: ${err.message}`)
-      })
+      // 5. Facial recognition API sync (non-blocking, opcional según el checkbox)
+      if (biometric.syncFacial) {
+        const planName = plans.find(p => p.id === payment.plan_id)?.name ?? ''
+        FacialApi.registerUser({
+          supabase_user_id: client.id,
+          email: personal.email,
+          first_name: personal.name,
+          last_name: personal.last_name,
+          phone_number: personal.phone_number || null,
+          gender: personal.gender || null,
+          birth_date: personal.date_of_birth || null,
+          profile_picture_url: uploadedImageUrl,
+          membership: {
+            membership_type: planName,
+            start_date: payment.start_date,
+            end_date: payment.end_date,
+          },
+        }).then((res) => {
+          if (res.data.warning) toast.warning(`Reconocimiento facial: ${res.data.warning}`)
+          else if (res.data.error) toast.error(`Reconocimiento facial: ${res.data.error}`)
+        }).catch((err: Error) => {
+          toast.warning(`Sin sincronización facial: ${err.message}`)
+        })
+      }
 
       onClose()
       setStep(0); setPersonal(emptyPersonal); setBiometric(emptyBiometric); setPayment(emptyPayment)

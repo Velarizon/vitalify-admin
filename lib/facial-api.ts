@@ -61,6 +61,57 @@ export interface FacialMembershipSyncResponse {
   error_type: string | null
 }
 
+export interface PendingClient {
+  id: number
+  name: string | null
+  last_name: string | null
+  email: string | null
+  image_url: string | null
+}
+
+export interface PendingUsersResponse {
+  pending: PendingClient[]
+  counts: { total: number; synced: number; pending: number }
+}
+
+export interface BulkStartResponse {
+  success: boolean
+  message: string
+  status: number
+  data: { job_id: string; total: number } | null
+  error_type: string | null
+}
+
+export type BulkJobStatus = 'pending' | 'running' | 'completed'
+
+export interface BulkResultItem {
+  success: boolean
+  user_id: number | null
+  supabase_user_id: number | null
+  embedding_synced: boolean
+  warning: string | null
+  error: string | null
+}
+
+export interface BulkJobData {
+  job_id: string
+  status: BulkJobStatus
+  total: number
+  processed: number
+  synced: number
+  synced_without_embedding: number
+  failed: number
+  results: BulkResultItem[]
+}
+
+export interface BulkJobResponse {
+  success: boolean
+  message: string
+  status: number
+  data: BulkJobData
+  error_type: string | null
+}
+
 export type FacialBiometricStatus = 'ok' | 'not_found' | 'no_image' | 'no_embedding'
 
 export interface FacialUserStatusData {
@@ -118,6 +169,56 @@ class FacialApi {
       const err = new Error(json?.message ?? 'Error al obtener estatus del usuario en reconocimiento facial') as Error & { errorType?: string }
       err.errorType = json?.error_type ?? null
       throw err
+    }
+    return res.json()
+  }
+
+  async getPendingUsers(companyId: number): Promise<PendingUsersResponse> {
+    const res = await fetch(`/api/facial-sync/pending?companyId=${companyId}`)
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      const err = new Error(json?.error ?? 'Error al obtener usuarios pendientes de sincronización') as Error & { errorType?: string }
+      err.errorType = json?.error_type ?? null
+      throw err
+    }
+    return res.json()
+  }
+
+  async registerExisting(clientId: number): Promise<FacialSyncResponse> {
+    const res = await fetch('/api/facial-sync/register-existing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      throw new Error(json?.message ?? json?.error ?? 'Error al registrar usuario en Facial API')
+    }
+    return res.json()
+  }
+
+  async startBulkRegister(clientIds: number[]): Promise<BulkStartResponse> {
+    const res = await fetch('/api/facial-sync/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientIds }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      throw new Error(json?.message ?? json?.error ?? 'Error al iniciar el registro masivo')
+    }
+    return res.json()
+  }
+
+  async getBulkJob(jobId: string): Promise<BulkJobResponse> {
+    const res = await fetch('/api/facial-sync/bulk/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      throw new Error(json?.message ?? json?.error ?? 'Error al consultar el progreso del registro masivo')
     }
     return res.json()
   }
