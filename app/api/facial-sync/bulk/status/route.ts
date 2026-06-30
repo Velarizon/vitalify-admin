@@ -32,15 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json(json, { status: res.status })
   }
 
-  const json = await res.json()
-
-  if (Array.isArray(json?.data?.results)) {
-    json.data.results = (json.data.results as Array<Record<string, unknown>>).map((r) => {
-      const rest = { ...r }
-      delete rest.embedding
-      return rest
-    })
-  }
-
-  return NextResponse.json(json)
+  // RecFacialApi ya no incluye el embedding en los results del bulk (se excluye en
+  // process_bulk). Los embeddings se consultan aparte vía /api/facial-sync/embeddings.
+  return NextResponse.json(await res.json())
 }

@@ -1,7 +1,7 @@
 // app/(dashboard)/facial-sync/page.tsx
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { MetricCard } from '@/components/shared/metric-card'
@@ -12,6 +12,26 @@ import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
 import { ScanFace, UserPlus, Loader2, WifiOff, Users } from 'lucide-react'
 import FacialApi, { type PendingClient, type BulkJobData } from '@/lib/facial-api'
+
+const BULK_JOB_KEY = 'facial-sync:active-bulk'
+// Tope de usuarios por job para no saturar la API con lotes muy largos.
+// Si hay más pendientes, se procesan en clics sucesivos (primeros 200 cada vez).
+const BULK_BATCH_SIZE = 200
+
+function readActiveBulk(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(BULK_JOB_KEY)
+}
+
+function writeActiveBulk(jobId: string) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(BULK_JOB_KEY, jobId)
+}
+
+function clearActiveBulk() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(BULK_JOB_KEY)
+}
 
 type Counts = { total: number; synced: number; pending: number }
 
@@ -28,6 +48,8 @@ export default function FacialSyncPage() {
   const [startingBulk, setStartingBulk] = useState(false)
   const [bulkJobId, setBulkJobId] = useState<string | null>(null)
   const [bulkProgress, setBulkProgress] = useState<BulkJobData | null>(null)
+  
+  const resumedRef = useRef(false)
 
   const bulkRunning = bulkJobId !== null
 
@@ -54,7 +76,20 @@ export default function FacialSyncPage() {
     return () => window.clearTimeout(timeoutId)
   }, [load])
 
-  // Polling del job bulk: pending → running → completed (para cuando completa)
+  useEffect(() => {
+    const stored = readActiveBulk()
+    if (!stored) return
+    const timeoutId = window.setTimeout(() => {
+      resumedRef.current = true
+      setBulkProgress({
+        job_id: stored, status: 'pending', total: 0,
+        processed: 0, synced: 0, synced_without_embedding: 0, failed: 0, results: [],
+      })
+      setBulkJobId(stored)
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
   useEffect(() => {
     if (!bulkJobId) return
 
@@ -65,11 +100,13 @@ export default function FacialSyncPage() {
       try {
         const res = await FacialApi.getBulkJob(bulkJobId)
         if (cancelled) return
+        resumedRef.current = false 
         setBulkProgress(res.data)
 
         if (res.data.status === 'completed') {
           const { synced, synced_without_embedding, failed } = res.data
           toast.success(`Registro masivo completado · ${synced} con embedding · ${synced_without_embedding} sin embedding · ${failed} fallidos`)
+          clearActiveBulk()
           setBulkJobId(null)
           void load()
           return
@@ -77,8 +114,15 @@ export default function FacialSyncPage() {
         timeoutId = window.setTimeout(poll, 2000)
       } catch (err) {
         if (cancelled) return
-        toast.error((err as Error).message)
+        clearActiveBulk()
         setBulkJobId(null)
+
+        if (resumedRef.current) {
+          resumedRef.current = false
+          setBulkProgress(null)
+        } else {
+          toast.error((err as Error).message)
+        }
       }
     }
 
@@ -104,12 +148,14 @@ export default function FacialSyncPage() {
   }
 
   const handleBulkRegister = async () => {
-    const ids = pending.map((p) => p.id)
+    const ids = pending.map((p) => p.id).slice(0, BULK_BATCH_SIZE)
     if (ids.length === 0) return
     setStartingBulk(true)
     try {
       const res = await FacialApi.startBulkRegister(ids)
       if (!res.data?.job_id) throw new Error(res.message || 'No se recibió job_id')
+      resumedRef.current = false
+      writeActiveBulk(res.data.job_id)
       setBulkProgress({
         job_id: res.data.job_id, status: 'pending', total: res.data.total,
         processed: 0, synced: 0, synced_without_embedding: 0, failed: 0, results: [],
@@ -251,7 +297,9 @@ export default function FacialSyncPage() {
             >
               {startingBulk || bulkRunning
                 ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Procesando</>
-                : <><Users className="h-3.5 w-3.5" /> Registrar todos ({counts?.pending ?? 0})</>}
+                : pending.length > BULK_BATCH_SIZE
+                  ? <><Users className="h-3.5 w-3.5" /> Registrar {BULK_BATCH_SIZE} de {pending.length}</>
+                  : <><Users className="h-3.5 w-3.5" /> Registrar todos ({pending.length})</>}
             </Button>
           }
         />
