@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     })
   } catch {
     return NextResponse.json(
-      { error: 'RecFacialApi no disponible. Verifica que el servicio esté en línea.', error_type: 'CONNECTION_ERROR' },
+      { error: 'Facial API no disponible. Verifica que el servicio esté en línea.', error_type: 'CONNECTION_ERROR' },
       { status: 503 }
     )
   }
