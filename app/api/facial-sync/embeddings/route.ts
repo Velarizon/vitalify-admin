@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { saveEmbeddings } from '@/lib/facial-sync'
 import type { EmbeddingsResponse } from '@/lib/facial-api'
+import { callFacialApi, requireAuthedAdmin } from '@/lib/facial-api-server'
 
 /**
  * Respalda en Supabase (tabla face_embedding) los embeddings de los clientes indicados.
@@ -10,28 +9,14 @@ import type { EmbeddingsResponse } from '@/lib/facial-api'
  * mismo helper que el alta individual. Los embeddings nunca salen hacia el navegador.
  */
 export async function POST(request: Request) {
-  const apiUrl = process.env.FACIAL_API_URL
-  const syncKey = process.env.FACIAL_SYNC_KEY
-
-  if (!apiUrl || !syncKey) {
-    return NextResponse.json({ error: 'Facial API not configured' }, { status: 503 })
-  }
-
   const { clientIds } = await request.json() as { clientIds: number[] }
   if (!Array.isArray(clientIds) || clientIds.length === 0) {
     return NextResponse.json({ error: 'clientIds vacío o inválido' }, { status: 400 })
   }
 
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-  }
-
-  const adminClient = createAdminClient()
-  if (!adminClient) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY no está configurada.' }, { status: 500 })
-  }
+  const gate = await requireAuthedAdmin()
+  if (!gate.ok) return gate.response
+  const adminClient = gate.data
 
   // 1. Saltar los clientes que YA tienen un embedding activo respaldado: son los que se
   //    restauraron, así que el vector en RecFacialApi es idéntico al de Supabase (salió de aquí).
@@ -53,28 +38,14 @@ export async function POST(request: Request) {
   }
 
   // 2. Traer desde RecFacialApi solo los embeddings que faltan por respaldar
-  let res: Response
-  try {
-    res = await fetch(`${apiUrl}/api/sync/users/embeddings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'vitalify-sync-key': syncKey },
-      body: JSON.stringify({ supabase_user_ids: idsToFetch }),
-    })
-  } catch {
-    return NextResponse.json(
-      { error: 'Facial API no disponible. Verifica que el servicio esté en línea.', error_type: 'CONNECTION_ERROR' },
-      { status: 503 }
-    )
-  }
+  const call = await callFacialApi<EmbeddingsResponse>('/api/sync/users/embeddings', {
+    method: 'POST',
+    body: { supabase_user_ids: idsToFetch },
+  })
+  if (!call.ok) return call.response
 
-  if (!res.ok) {
-    const json = await res.json().catch(() => null)
-    return NextResponse.json({ error: json?.message ?? 'Error al consultar embeddings en Facial API' }, { status: res.status })
-  }
-
-  const json = await res.json() as EmbeddingsResponse
-  const embeddings = json?.data?.embeddings ?? []
-  const missing = json?.data?.missing ?? []
+  const embeddings = call.data?.data?.embeddings ?? []
+  const missing = call.data?.data?.missing ?? []
 
   // 3. Guardar en Supabase (mismo helper que el alta individual)
   try {
