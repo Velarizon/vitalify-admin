@@ -1,5 +1,23 @@
 import { NextResponse } from 'next/server'
-import type { RegisterUserPayload, UpdateUserPatch } from '@/lib/facial-api'
+import type { RegisterUserPayload, UpdateUserPatch, FacialSyncResponse } from '@/lib/facial-api'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { saveEmbeddings } from '@/lib/facial-sync'
+
+async function backupEmbedding(data: FacialSyncResponse) {
+  const d = data?.data
+  if (!d?.success || !d.embedding || !d.model_name) return
+  try {
+    const admin = createAdminClient()
+    if (!admin) return
+    await saveEmbeddings(admin, [{
+      client_id:  d.supabase_user_id,
+      embedding:  d.embedding,
+      model_name: d.model_name,
+    }])
+  } catch (e) {
+    console.error('face_embedding backup failed:', e)
+  }
+}
 
 export async function POST(request: Request) {
   const apiUrl = process.env.FACIAL_API_URL
@@ -34,6 +52,7 @@ export async function POST(request: Request) {
   }
 
   const data = await res.json()
+  await backupEmbedding(data)
   return NextResponse.json(data)
 }
 
@@ -70,5 +89,6 @@ export async function PATCH(request: Request) {
   }
 
   const data = await res.json()
+  await backupEmbedding(data)
   return NextResponse.json(data)
 }

@@ -46,10 +46,28 @@ export async function hydrateSyncPayloads(
 
   if (error) throw new Error(error.message)
 
+  // Restauración: adjunta el embedding activo respaldado en Supabase para que RecFacialApi
+  // no lo regenere (parte cara del sync) al migrar a una API/PC nueva. Los clientes sin
+  // respaldo (nuevos reales) van sin embedding y se generan desde la foto como siempre.
+  const { data: embRows, error: embError } = await adminClient
+    .from('face_embedding')
+    .select('client_id, embedding, model_name')
+    .in('client_id', clientIds)
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+  if (embError) throw new Error(embError.message)
+
+  const embByClient = new Map<number, { embedding: string | null; model_name: string }>()
+  for (const row of embRows ?? []) {
+    if (!embByClient.has(row.client_id)) embByClient.set(row.client_id, row) // el primero = el más reciente
+  }
+
   return ((data ?? []) as HydrationRow[]).map((client) => {
     const latest = (client.subscriptions ?? [])
       .filter((s) => s.start_date && s.end_date)
       .sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))[0]
+
+    const emb = embByClient.get(client.id)
 
     return {
       supabase_user_id:    client.id,
@@ -60,9 +78,45 @@ export async function hydrateSyncPayloads(
       gender:              client.gender,
       birth_date:          client.date_of_birth,
       profile_picture_url: client.image_url,
+      embedding:           emb?.embedding ?? null,
+      model_name:          emb?.model_name ?? null,
       membership: latest
         ? { membership_type: planName(latest), start_date: latest.start_date!, end_date: latest.end_date! }
         : undefined,
     }
   })
+}
+
+export type EmbeddingToSave = {
+  client_id:  number
+  embedding:  string
+  model_name: string
+}
+
+
+export async function saveEmbeddings(
+  adminClient: AdminClient,
+  items: EmbeddingToSave[]
+): Promise<void> {
+  if (items.length === 0) return
+
+  const clientIds = items.map((i) => i.client_id)
+
+  const { error: deactivateError } = await adminClient
+    .from('face_embedding')
+    .update({ active: false })
+    .in('client_id', clientIds)
+    .eq('active', true)
+  if (deactivateError) throw new Error(deactivateError.message)
+
+  const { error: insertError } = await adminClient
+    .from('face_embedding')
+    .insert(items.map((i) => ({
+      client_id:  i.client_id,
+      embedding:  i.embedding,
+      model_name: i.model_name,
+      active:     true,
+      created_at: new Date().toISOString(),
+    })))
+  if (insertError) throw new Error(insertError.message)
 }

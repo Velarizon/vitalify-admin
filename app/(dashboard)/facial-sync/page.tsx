@@ -14,8 +14,7 @@ import { ScanFace, UserPlus, Loader2, WifiOff, Users } from 'lucide-react'
 import FacialApi, { type PendingClient, type BulkJobData } from '@/lib/facial-api'
 
 const BULK_JOB_KEY = 'facial-sync:active-bulk'
-// Tope de usuarios por job para no saturar la API con lotes muy largos.
-// Si hay más pendientes, se procesan en clics sucesivos (primeros 200 cada vez).
+
 const BULK_BATCH_SIZE = 200
 
 function readActiveBulk(): string | null {
@@ -105,9 +104,22 @@ export default function FacialSyncPage() {
 
         if (res.data.status === 'completed') {
           const { synced, synced_without_embedding, failed } = res.data
-          toast.success(`Registro masivo completado · ${synced} con embedding · ${synced_without_embedding} sin embedding · ${failed} fallidos`)
+          toast.success(`Registro masivo completado · ${synced} con foto · ${synced_without_embedding} sin foto · ${failed} fallidos`)
           clearActiveBulk()
           setBulkJobId(null)
+
+          const idsConEmbedding = res.data.results
+            .filter((r) => r.success && r.embedding_synced && r.supabase_user_id != null)
+            .map((r) => r.supabase_user_id as number)
+          if (idsConEmbedding.length > 0) {
+            FacialApi.syncEmbeddingsToSupabase(idsConEmbedding)
+              .then((r) => toast.success(
+                `Embeddings respaldados en Supabase: ${r.saved}` +
+                (r.skipped > 0 ? ` · ${r.skipped} ya respaldados` : '')
+              ))
+              .catch((e: Error) => toast.warning(`No se respaldaron los embeddings: ${e.message}`))
+          }
+
           void load()
           return
         }

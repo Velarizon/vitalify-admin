@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
   if (!res.ok) {
     const json = await res.json().catch(() => null)
-    return NextResponse.json({ error: json?.message ?? 'Error al consultar RecFacialApi' }, { status: res.status })
+    return NextResponse.json({ error: json?.message ?? 'Error al consultar Facial API' }, { status: res.status })
   }
 
   const json = await res.json()

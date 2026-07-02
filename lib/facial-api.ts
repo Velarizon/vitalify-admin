@@ -14,6 +14,11 @@ export interface RegisterUserPayload {
   birth_date?: string | null
   profile_picture_url?: string | null
   user_image_base64?: string | null
+  // Embedding respaldado en Supabase. Si viene, RecFacialApi lo usa tal cual y NO regenera
+  // (restauración tras migración/cambio de PC). model_name se ignora hasta que RecFacialApi
+  // lo agregue a UserSyncPayload; sirve para preservar el modelo del vector guardado.
+  embedding?: string | null
+  model_name?: string | null
   membership?: FacialMembership
 }
 
@@ -41,6 +46,7 @@ export interface FacialSyncUserData {
   supabase_user_id: number
   embedding_synced: boolean
   embedding: string | null
+  model_name: string | null
   warning: string | null
   error: string | null
 }
@@ -110,6 +116,28 @@ export interface BulkJobResponse {
   status: number
   data: BulkJobData
   error_type: string | null
+}
+
+// Respuesta de RecFacialApi POST /api/sync/users/embeddings (la consume el proxy server-side)
+export interface EmbeddingItem {
+  supabase_user_id: number
+  embedding: string
+  model_name: string
+}
+
+export interface EmbeddingsResponse {
+  success: boolean
+  message: string
+  status: number
+  data: { embeddings: EmbeddingItem[]; missing: number[] }
+  error_type: string | null
+}
+
+// Resumen que el proxy devuelve al navegador (sin exponer los embeddings)
+export interface EmbeddingsBackupResult {
+  saved: number
+  missing: number[]
+  skipped: number // clientes que ya tenían un embedding activo respaldado (no se re-guardan)
 }
 
 export type FacialBiometricStatus = 'ok' | 'not_found' | 'no_image' | 'no_embedding'
@@ -219,6 +247,21 @@ class FacialApi {
     if (!res.ok) {
       const json = await res.json().catch(() => null)
       throw new Error(json?.message ?? json?.error ?? 'Error al consultar el progreso del registro masivo')
+    }
+    return res.json()
+  }
+
+  // Respalda en Supabase los embeddings de los clientes indicados. El proxy trae los
+  // vectores de RecFacialApi y los guarda server-side; aquí solo llega el resumen.
+  async syncEmbeddingsToSupabase(clientIds: number[]): Promise<EmbeddingsBackupResult> {
+    const res = await fetch('/api/facial-sync/embeddings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientIds }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      throw new Error(json?.message ?? json?.error ?? 'Error al respaldar embeddings en Supabase')
     }
     return res.json()
   }
