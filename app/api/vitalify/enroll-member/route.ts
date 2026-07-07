@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
     const {
-      companyId, firstName, lastName, email, phone,
+      companyId, localClientId, firstName, lastName, email, phone,
       startDate, endDate, planDuration, amount, currency, paymentMethod,
     } = await request.json()
     if (!companyId) return NextResponse.json({ error: 'companyId requerido' }, { status: 400 })
@@ -46,6 +46,12 @@ export async function POST(request: Request) {
       currency: currency ?? 'MXN',
       paymentMethod: paymentMethod ?? null,
     })
+
+    if (localClientId) {
+      await (supabase.from('clients') as any)
+        .update({ vitalify_client_id: result.clientId })
+        .eq('id', localClientId)
+    }
 
     return NextResponse.json({
       clientId: result.clientId,
