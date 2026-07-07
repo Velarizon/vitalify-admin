@@ -169,6 +169,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               companyId: userData.company.id,
+              localClientId: client.id,
               firstName: client.name ?? '',
               lastName: client.last_name ?? '',
               email: client.email,

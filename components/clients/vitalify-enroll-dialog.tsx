@@ -70,6 +70,7 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId: userData.company.id,
+          localClientId: client.id,
           firstName: client.name ?? '',
           lastName: client.last_name ?? '',
           email: client.email,

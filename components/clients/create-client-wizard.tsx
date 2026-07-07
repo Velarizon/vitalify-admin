@@ -119,6 +119,7 @@ export function CreateClientWizard({ open, onClose, plans, gymRegistered = false
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               companyId: userData.company.id,
+              localClientId: client.id,
               firstName: personal.name,
               lastName: personal.last_name,
               email: personal.email,
