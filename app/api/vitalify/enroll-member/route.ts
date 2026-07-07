@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createGymMember } from '@/lib/vitalify/trainer-app'
 
+export const runtime = 'edge'
+
 // Enrolls a gym member in the trainer-app project, linked to the gym's trainer
 // (companies.vitalify_id). Requires the gym to be registered first.
 export async function POST(request: Request) {

@@ -7,12 +7,14 @@ import { DataTable } from '@/components/shared/data-table'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield, Ticket } from 'lucide-react'
+import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield, Ticket, Smartphone } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
 import { ChargeVisitDialog } from '@/components/clients/charge-visit-dialog'
+import { VitalifyEnrollDialog } from '@/components/clients/vitalify-enroll-dialog'
+import { VitalifyInviteDialog, VitalifyInvite } from '@/components/clients/vitalify-invite-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
 
 
@@ -68,6 +70,8 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [renewingClient, setRenewingClient] = useState<Client | null>(null)
   const [gymRegistered, setGymRegistered] = useState(false)
+  const [enrollingClient, setEnrollingClient] = useState<Client | null>(null)
+  const [enrollInvite, setEnrollInvite] = useState<VitalifyInvite | null>(null)
 
   const load = useCallback(async () => {
   if (!userData) return
@@ -176,14 +180,24 @@ export default function ClientsPage() {
           >
             <Pencil className="h-2.5 w-2.5" /> Editar
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="h-7 px-3 text-[9px] uppercase font-black tracking-[0.15em] gap-1.5 border-white/5 bg-secondary/20 hover:bg-primary/10 hover:text-primary transition-all"
             onClick={() => setRenewingClient(row.original)}
           >
             <RefreshCw className="h-2.5 w-2.5" /> Renovar
           </Button>
+          {gymRegistered && row.original.email && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-3 text-[9px] uppercase font-black tracking-[0.15em] gap-1.5 border-white/5 bg-secondary/20 hover:bg-primary/10 hover:text-primary transition-all"
+              onClick={() => setEnrollingClient(row.original)}
+            >
+              <Smartphone className="h-2.5 w-2.5" /> App
+            </Button>
+          )}
         </div>
       ),
     },
@@ -283,6 +297,13 @@ export default function ClientsPage() {
         onClose={() => setShowVisit(false)}
         onSuccess={load}
       />
+      <VitalifyEnrollDialog
+        client={enrollingClient}
+        open={!!enrollingClient}
+        onClose={() => setEnrollingClient(null)}
+        onEnrolled={(invite) => { setEnrollingClient(null); setEnrollInvite(invite) }}
+      />
+      <VitalifyInviteDialog invite={enrollInvite} onClose={() => setEnrollInvite(null)} />
     </div>
   )
 }

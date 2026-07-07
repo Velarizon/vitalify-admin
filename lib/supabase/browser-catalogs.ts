@@ -459,6 +459,30 @@ export async function createBrowserVisitPayment(payment: {
   return data
 }
 
+export async function createBrowserAddonPayment(payment: {
+  subscription_id?: number | null
+  amount: number
+  payment_method: string
+  location_id: number
+  shift_id?: number | null
+}) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data, error } = await supabase
+    .from('payments')
+    .insert({
+      ...payment,
+      subscription_id: payment.subscription_id ?? null,
+      payment_type: null,
+      payment_date: new Date().toISOString(),
+      registered_by: user?.id ?? null,
+    } as never)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
 export async function getBrowserDayVisitPrice(companyId: number): Promise<number | null> {
   const supabase = createClient()
   const { data, error } = await supabase

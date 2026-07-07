@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { registerTrainer } from '@/lib/vitalify/trainer-app'
 
+export const runtime = 'edge'
+
 // Registers the gym as a TRAINER in the trainer-app project and stores the
 // resulting User.id + credentials on companies.vitalify_* (admin project).
 export async function POST(request: Request) {
