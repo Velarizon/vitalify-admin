@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createGymMember } from '@/lib/vitalify/trainer-app'
 
+export const runtime = 'edge'
+
 // Enrolls a gym member in the trainer-app project, linked to the gym's trainer
 // (companies.vitalify_id). Requires the gym to be registered first.
 export async function POST(request: Request) {
@@ -11,7 +13,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
     const {
-      companyId, firstName, lastName, email, phone,
+      companyId, localClientId, firstName, lastName, email, phone,
       startDate, endDate, planDuration, amount, currency, paymentMethod,
     } = await request.json()
     if (!companyId) return NextResponse.json({ error: 'companyId requerido' }, { status: 400 })
@@ -44,6 +46,15 @@ export async function POST(request: Request) {
       currency: currency ?? 'MXN',
       paymentMethod: paymentMethod ?? null,
     })
+
+    if (localClientId) {
+      const { error: persistError } = await (supabase.from('clients') as any)
+        .update({ vitalify_client_id: result.clientId })
+        .eq('id', localClientId)
+      if (persistError) {
+        console.warn('Failed to persist vitalify_client_id', persistError)
+      }
+    }
 
     return NextResponse.json({
       clientId: result.clientId,
