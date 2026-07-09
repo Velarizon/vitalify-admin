@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Home, Users, CreditCard, ClipboardList, Timer,
-  MapPin, BarChart3, UserCog, Fingerprint, ScanFace, X,
+  MapPin, BarChart3, UserCog, Fingerprint, ScanFace, Megaphone, X,
 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/auth'
@@ -26,6 +26,7 @@ const adminItems = [
   { label: 'Reportes',     href: '/reports',   icon: BarChart3 },
   { label: 'Trabajadores', href: '/workers',   icon: UserCog },
   { label: 'Sincronización Facial', href: '/facial-sync', icon: ScanFace },
+  { label: 'Anuncios',     href: '/ads',       icon: Megaphone },
   { label: 'Terminal',     href: '/terminal',  icon: Fingerprint },
 ]
 

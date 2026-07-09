@@ -2,7 +2,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const ADMIN_ONLY_PATHS = ['/plans', '/locations', '/reports', '/workers', '/terminal', '/facial-sync']
+const ADMIN_ONLY_PATHS = ['/plans', '/locations', '/reports', '/workers', '/terminal', '/facial-sync', '/ads']
 const PUBLIC_PATHS = ['/login', '/auth/callback', '/set-password']
 
 export async function middleware(request: NextRequest) {
