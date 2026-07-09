@@ -5,6 +5,7 @@ import type { Database } from '@/types/supabase'
 
 type ClientRow = Database['public']['Tables']['clients']['Row'] & {
   is_sync?: boolean | null
+  vitalify_client_id?: number | null
   subscriptions?: {
     id: number
     plan_id: number | null

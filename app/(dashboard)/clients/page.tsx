@@ -6,6 +6,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth'
 import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield, Ticket, Smartphone } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
@@ -167,6 +168,18 @@ export default function ClientsPage() {
           </span>
         )
       },
+    },
+    {
+      header: 'App',
+      cell: ({ row }) => (
+        row.original.vitalify_client_id
+          ? (
+            <Badge className="bg-primary text-primary-foreground text-[9px] uppercase tracking-widest h-4 gap-1">
+              <Smartphone className="h-2.5 w-2.5" /> App
+            </Badge>
+          )
+          : null
+      ),
     },
     {
       id: 'actions',
