@@ -314,7 +314,7 @@ export default function ClientsPage() {
         client={enrollingClient}
         open={!!enrollingClient}
         onClose={() => setEnrollingClient(null)}
-        onEnrolled={(invite) => { setEnrollingClient(null); setEnrollInvite(invite) }}
+        onEnrolled={(invite) => { setEnrollingClient(null); setEnrollInvite(invite); load() }}
       />
       <VitalifyInviteDialog invite={enrollInvite} onClose={() => setEnrollInvite(null)} />
     </div>

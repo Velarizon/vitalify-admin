@@ -12,7 +12,7 @@ la app".
 
 ## Diseño
 
-**1. Columna nueva** — `clients.vitalify_client_id` (`text`, nullable).
+**1. Columna nueva** — `clients.vitalify_client_id` (`integer`, nullable).
 Migración nueva en `supabase/migrations/`. La presencia/ausencia de este
 valor *es* el flag de "tiene app" — no se agrega un boolean separado.
 

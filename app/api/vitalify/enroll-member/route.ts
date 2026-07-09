@@ -48,9 +48,12 @@ export async function POST(request: Request) {
     })
 
     if (localClientId) {
-      await (supabase.from('clients') as any)
+      const { error: persistError } = await (supabase.from('clients') as any)
         .update({ vitalify_client_id: result.clientId })
         .eq('id', localClientId)
+      if (persistError) {
+        console.warn('Failed to persist vitalify_client_id', persistError)
+      }
     }
 
     return NextResponse.json({
