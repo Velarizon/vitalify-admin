@@ -47,9 +47,9 @@ export default function TutorialPage() {
       icon: Instagram,
       shortDesc: 'Ofrecer la app y promover Instagram.',
       badgeText: 'Paso 1: Promoción',
-      color: 'from-pink-500/20 to-rose-500/20 border-pink-500/30 text-pink-400',
-      badgeColor: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
-      glow: 'shadow-[0_0_20px_rgba(236,72,153,0.15)]',
+      color: 'from-primary/20 to-emerald-500/10 border-primary/30 text-primary',
+      badgeColor: 'bg-primary/10 text-primary border-primary/20',
+      glow: 'shadow-neon',
       details: (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -69,14 +69,14 @@ export default function TutorialPage() {
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-foreground font-semibold">Instagram obligatorio:</strong> Pide al cliente que siga la cuenta oficial de Instagram <span className="text-pink-400 font-mono font-bold">@vitalifyapp</span> para actualizaciones, tutoriales de uso de la app y dinámicas del gym.
+                  <strong className="text-foreground font-semibold">Instagram obligatorio:</strong> Pide al cliente que siga la cuenta oficial de Instagram <span className="text-primary font-mono font-bold">@vitalifyapp</span> para actualizaciones, tutoriales de uso de la app y dinámicas del gym.
                 </span>
               </li>
             </ul>
           </div>
-          <div className="mt-4 p-3 rounded-lg border border-pink-500/20 bg-pink-500/5 flex items-center justify-between gap-4">
+          <div className="mt-4 p-3 rounded-lg border border-primary/20 bg-primary/5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Instagram className="h-8 w-8 text-pink-400 shrink-0" />
+              <Instagram className="h-8 w-8 text-primary shrink-0" />
               <div>
                 <p className="text-xs font-bold text-foreground">Instagram Oficial</p>
                 <p className="text-[10px] text-muted-foreground">Cuenta: @vitalifyapp</p>
@@ -88,7 +88,7 @@ export default function TutorialPage() {
               onClick={() => {
                 window.open('https://instagram.com/vitalifyapp', '_blank')
               }}
-              className="text-[10px] uppercase font-bold tracking-widest border-pink-500/30 hover:bg-pink-500/10 text-pink-400 shrink-0"
+              className="text-[10px] uppercase font-bold tracking-widest border-primary/30 hover:bg-primary/10 text-primary shrink-0"
             >
               Ir a Instagram
             </Button>
@@ -298,16 +298,16 @@ Al activar tu cuenta ingresa tu email ({Email}) y este código.`}
       </div>
 
       {/* Instagram Spotlight Card */}
-      <div className="glass-panel relative overflow-hidden rounded-xl border border-pink-500/20 bg-gradient-to-r from-pink-500/5 via-transparent to-transparent p-5 sm:p-6 shadow-[0_0_30px_rgba(236,72,153,0.05)]">
-        <div className="absolute top-0 right-0 h-40 w-40 bg-pink-500/10 rounded-full filter blur-[50px] pointer-events-none" />
+      <div className="glass-panel relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent p-5 sm:p-6 shadow-[0_0_30px_rgba(19,236,164,0.05)]">
+        <div className="absolute top-0 right-0 h-40 w-40 bg-primary/10 rounded-full filter blur-[50px] pointer-events-none" />
         
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.2)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_rgba(19,236,164,0.15)]">
               <Instagram className="h-6 w-6" />
             </div>
             <div className="space-y-1">
-              <span className="text-[9px] font-black uppercase tracking-widest text-pink-400">Requisito de Comunidad</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary">Requisito de Comunidad</span>
               <h2 className="text-base font-bold text-foreground">Promover el Instagram oficial de Vitalify</h2>
               <p className="text-xs text-muted-foreground leading-normal max-w-xl">
                 Es fundamental pedirle a cada cliente interesado que siga la cuenta <strong className="text-foreground font-semibold">@vitalifyapp</strong>. Ahí compartimos tips de entrenamiento, noticias del gimnasio y aclaramos dudas rápidas.
@@ -319,7 +319,7 @@ Al activar tu cuenta ingresa tu email ({Email}) y este código.`}
               size="sm"
               variant="outline"
               onClick={handleCopyInstagram}
-              className="flex-1 sm:flex-none text-xs h-9 gap-1.5 uppercase font-bold tracking-widest border-pink-500/30 text-pink-400 hover:bg-pink-500/10"
+              className="flex-1 sm:flex-none text-xs h-9 gap-1.5 uppercase font-bold tracking-widest border-primary/30 text-primary hover:bg-primary/10"
             >
               {copiedInstagram ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copiedInstagram ? 'Copiado' : 'Copiar @'}
@@ -327,7 +327,7 @@ Al activar tu cuenta ingresa tu email ({Email}) y este código.`}
             <Button
               size="sm"
               onClick={() => window.open('https://instagram.com/vitalifyapp', '_blank')}
-              className="flex-1 sm:flex-none text-xs h-9 gap-1.5 uppercase font-bold tracking-widest bg-pink-500 text-white hover:bg-pink-600 shadow-[0_0_15px_rgba(236,72,153,0.3)] border-none"
+              className="flex-1 sm:flex-none text-xs h-9 gap-1.5 uppercase font-bold tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 shadow-neon border-none"
             >
               <Instagram className="h-3.5 w-3.5" />
               Seguir Cuenta
