@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Cake, Activity, TrendingUp, Zap, Calendar, ArrowUpRight, Users, DoorOpen, ShieldCheck, Timer, UserRoundPlus } from 'lucide-react'
+import { Cake, Activity, TrendingUp, Zap, Calendar, ArrowUpRight, Users, DoorOpen, ShieldCheck, Timer, UserRoundPlus, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -39,7 +39,7 @@ export default function DashboardPage() {
           <BadgeLike text={selectedLocation?.location.name ?? 'Sin ubicación'} />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <WorkerAction
             href="/clients"
             icon={UserRoundPlus}
@@ -57,6 +57,12 @@ export default function DashboardPage() {
             icon={Timer}
             title="Administrar turno"
             description="Revisar tu turno activo y cierre."
+          />
+          <WorkerAction
+            href="/tutorial"
+            icon={BookOpen}
+            title="Guía App"
+            description="Tutorial de activación del complemento."
           />
         </div>
 

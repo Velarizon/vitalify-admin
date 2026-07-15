@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Home, Users, CreditCard, ClipboardList, Timer,
-  MapPin, BarChart3, UserCog, Fingerprint, X,
+  MapPin, BarChart3, UserCog, Fingerprint, X, BookOpen,
 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +18,7 @@ const generalItems = [
   { label: 'Clientes',   href: '/clients',  icon: Users },
   { label: 'Pagos',      href: '/payments', icon: CreditCard },
   { label: 'Turnos',     href: '/shifts',   icon: Timer },
+  { label: 'Guía App',   href: '/tutorial', icon: BookOpen },
 ]
 
 const adminItems = [
