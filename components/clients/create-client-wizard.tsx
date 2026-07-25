@@ -86,7 +86,6 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
         shift_id: activeShift?.id ?? null,
       })
 
-      /* Terminal Hikvision — desactivado temporalmente
       try {
         const employeeNo = String(client.id)
         await Terminal.createPerson({
@@ -107,7 +106,6 @@ export function CreateClientWizard({ open, onClose, plans }: Props) {
       } catch {
         // terminal error
       }
-      */
       toast.success('Registro completado exitosamente', { id: toastId })
 
       // 5. Facial recognition API sync (non-blocking, opcional según el checkbox)
