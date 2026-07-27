@@ -4,13 +4,13 @@
 import { useState, useRef, useCallback } from 'react'
 import Webcam from 'react-webcam'
 import { Button } from '@/components/ui/button'
-import { Camera, Fingerprint, RotateCcw, Check } from 'lucide-react'
+import { Camera, Fingerprint, RotateCcw } from 'lucide-react'
 import Terminal, { FingerprintCapture } from '@/lib/terminal'
+import { PhotoTips } from './photo-tips'
 
 export interface BiometricData {
   faceImage: string | null
   fingerprintData: FingerprintCapture | null
-  syncFacial: boolean
 }
 
 interface Props {
@@ -48,6 +48,7 @@ export function StepBiometrics({ data, onChange }: Props) {
       {/* Face photo */}
       <div className="space-y-2">
         <p className="text-xs font-medium">Foto facial</p>
+        <PhotoTips />
         {!data.faceImage ? (
           <div className="space-y-2">
             <Webcam
@@ -85,7 +86,11 @@ export function StepBiometrics({ data, onChange }: Props) {
         )}
       </div>
 
-      {/* Sincronización con Facial API */}
+      {/* Sincronización con Facial API — oculto: hoy el alta siempre sincroniza.
+          Para reactivarlo hay que devolver `syncFacial: boolean` a BiometricData, su
+          default en `emptyBiometric` y el `if (biometric.syncFacial)` de create-client-wizard,
+          además de reimportar `Check` de lucide-react.
+
       <label className="group flex items-start gap-3 cursor-pointer select-none rounded-lg border p-3 transition-all duration-200 border-border/40 bg-secondary/20 hover:bg-secondary/30 has-[:checked]:border-primary/40 has-[:checked]:bg-primary/10 has-[:checked]:shadow-neon">
         <input
           type="checkbox"
@@ -103,6 +108,7 @@ export function StepBiometrics({ data, onChange }: Props) {
           <p className="text-[10px] text-muted-foreground">Registra al miembro en el reconocimiento facial al finalizar el alta.</p>
         </div>
       </label>
+      */}
     </div>
   )
 }

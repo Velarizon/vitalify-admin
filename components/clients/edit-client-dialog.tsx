@@ -17,6 +17,7 @@ import { User, Fingerprint, CreditCard, History, Save, X, Camera, RotateCcw, Shi
 import { cn } from '@/lib/utils'
 import Terminal, { FingerprintCapture } from '@/lib/terminal'
 import FacialApi, { type FacialUserStatusData } from '@/lib/facial-api'
+import { PhotoTips } from './photo-tips'
 
 interface Subscription {
   id: number
@@ -419,8 +420,8 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-2xl bg-card border-border/40 p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="sm:max-w-2xl max-h-[calc(100dvh-4rem)] flex flex-col bg-card border-border/40 p-0 overflow-hidden">
+        <DialogHeader className="shrink-0 p-6 pb-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <DialogTitle className="text-xl font-heading font-bold text-foreground flex items-center gap-2">
@@ -460,8 +461,8 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="px-6 border-b border-border/40">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 w-full flex-1 flex-col">
+          <div className="shrink-0 px-6 border-b border-border/40">
             <TabsList className="h-12 gap-6">
               <TabsTrigger value="info" className="gap-2">
                 <User className="h-3.5 w-3.5" /> Información
@@ -478,7 +479,7 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
             </TabsList>
           </div>
 
-          <div className="p-6 pt-0">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-6 pt-0">
             {/* Tab: Información */}
             <TabsContent value="info" className="mt-6 space-y-6">
               <div className="grid grid-cols-2 gap-6">
@@ -624,6 +625,8 @@ export function EditClientDialog({ client, open, onClose, onSuccess }: Props) {
                   </div>
                 )
               )}
+
+              {!faceImage && <PhotoTips />}
 
               <div className="grid gap-5 md:grid-cols-[1.1fr_0.9fr]">
                 <div className="space-y-3">
