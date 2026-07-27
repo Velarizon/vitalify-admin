@@ -36,6 +36,13 @@ const columns: ColumnDef<Payment>[] = [
   { id: 'amount', header: 'Monto', cell: ({ row }) => fmt(row.original.amount ?? 0) },
   { accessorKey: 'payment_method', header: 'Método' },
   {
+    header: 'Ticket',
+    cell: ({ row }) => {
+      const ticket = (row.original as unknown as { ticket_number?: string | null }).ticket_number
+      return ticket ? <span className="font-mono text-xs">#{ticket}</span> : '—'
+    },
+  },
+  {
     header: 'Tipo',
     accessorKey: 'payment_type',
     cell: ({ row }) => {
@@ -43,6 +50,9 @@ const columns: ColumnDef<Payment>[] = [
       if (!type) return '—'
       if (type === 'new_subscription') {
         return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Nueva</Badge>
+      }
+      if (type === 'visit') {
+        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Visita</Badge>
       }
       return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Renovación</Badge>
     },
@@ -108,6 +118,10 @@ export default function ShiftDetailPage() {
 
   const renewals = payments
     .filter(p => p.payment_type === 'renewal')
+    .reduce((sum, p) => sum + (p.amount ?? 0), 0)
+
+  const visits = payments
+    .filter(p => p.payment_type === 'visit')
     .reduce((sum, p) => sum + (p.amount ?? 0), 0)
 
   const paymentTotals = payments.reduce(
@@ -191,9 +205,10 @@ export default function ShiftDetailPage() {
         <MetricCard title="Total" value={fmt(isOpen ? paymentTotal : shift.total_amount ?? 0)} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mt-3">
+      <div className="grid grid-cols-3 gap-3 mt-3">
         <MetricCard title="Inscripciones Nuevas" value={fmt(newSubscriptions)} />
         <MetricCard title="Renovaciones" value={fmt(renewals)} />
+        <MetricCard title="Visitas" value={fmt(visits)} />
       </div>
 
       {!isOpen && shift.notes && (

@@ -6,6 +6,7 @@ import type { Database } from '@/types/supabase'
 
 type ClientRow = Database['public']['Tables']['clients']['Row'] & {
   is_sync?: boolean | null
+  vitalify_client_id?: number | null
   subscriptions?: {
     id: number
     plan_id: number | null
@@ -23,6 +24,7 @@ type LocationRow = Database['public']['Tables']['locations']['Row']
 
 type PaymentRow = Database['public']['Tables']['payments']['Row'] & {
   created_at?: string | null
+  ticket_number?: string | null
   subscriptions?: {
     clients?: { name: string | null; last_name: string | null } | null
     plans?: { name: string | null } | null
@@ -208,6 +210,23 @@ export async function toggleBrowserPlanActive(planId: number, isActive: boolean)
     .update({ is_active: isActive } as never)
     .eq('id', planId)
   if (error) throw new Error(error.message)
+}
+
+export interface CompanyVitalify {
+  vitalify_id: number | null
+  vitalify_email: string | null
+  vitalify_password: string | null
+}
+
+export async function getBrowserCompanyVitalify(companyId: number): Promise<CompanyVitalify> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('companies')
+    .select('vitalify_id, vitalify_email, vitalify_password' as never)
+    .eq('id', companyId)
+    .single()
+  if (error) throw new Error(error.message)
+  return data as unknown as CompanyVitalify
 }
 
 export async function getBrowserLocations(companyId: number): Promise<LocationRow[]> {
@@ -469,6 +488,76 @@ export async function createBrowserPayment(payment: {
     .single()
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function createBrowserVisitPayment(payment: {
+  amount: number
+  payment_method: string
+  location_id: number
+  ticket_number: string
+  shift_id?: number | null
+  registered_by?: string | null
+}) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data, error } = await supabase
+    .from('payments')
+    .insert({
+      ...payment,
+      subscription_id: null,
+      payment_type: 'visit',
+      payment_date: new Date().toISOString(),
+      registered_by: user?.id ?? null,
+    } as never)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function createBrowserAddonPayment(payment: {
+  subscription_id?: number | null
+  amount: number
+  payment_method: string
+  location_id: number
+  shift_id?: number | null
+}) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data, error } = await supabase
+    .from('payments')
+    .insert({
+      ...payment,
+      subscription_id: payment.subscription_id ?? null,
+      payment_type: null,
+      payment_date: new Date().toISOString(),
+      registered_by: user?.id ?? null,
+    } as never)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function getBrowserDayVisitPrice(companyId: number): Promise<number | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('companies')
+    .select('day_visit_price' as never)
+    .eq('id', companyId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return (data as unknown as { day_visit_price: number | null } | null)?.day_visit_price ?? null
+}
+
+export async function updateBrowserDayVisitPrice(companyId: number, price: number) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('companies')
+    .update({ day_visit_price: price } as never)
+    .eq('id', companyId)
+  if (error) throw new Error(error.message)
 }
 
 export async function getBrowserShiftsPage(

@@ -6,20 +6,25 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared/data-table'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield } from 'lucide-react'
+import { Plus, Pencil, RefreshCw, UserCheck, UserX, AlertCircle, Users, Shield, Ticket, Smartphone } from 'lucide-react'
 import { TableSkeleton } from '@/components/shared/table-skeleton'
 import { CreateClientWizard } from '@/components/clients/create-client-wizard'
 import { EditClientDialog } from '@/components/clients/edit-client-dialog'
 import { RenewMembershipDialog } from '@/components/clients/renew-membership-dialog'
+import { ChargeVisitDialog } from '@/components/clients/charge-visit-dialog'
+import { VitalifyEnrollDialog } from '@/components/clients/vitalify-enroll-dialog'
+import { VitalifyInviteDialog, VitalifyInvite } from '@/components/clients/vitalify-invite-dialog'
 import { MetricCard } from '@/components/shared/metric-card'
 
 
-import { 
-  getBrowserActivePlans, 
-  getBrowserClientsPage, 
-  searchBrowserClients,    
-  ClientSearchParams        
+import {
+  getBrowserActivePlans,
+  getBrowserClientsPage,
+  searchBrowserClients,
+  ClientSearchParams,
+  getBrowserCompanyVitalify
 } from '@/lib/supabase/browser-catalogs'
 
 import { ClientSearchBar } from '@/components/clients/client-search-bar'
@@ -62,8 +67,12 @@ export default function ClientsPage() {
   const [stats, setStats] = useState({ total: 0, active: 0, expired: 0 })
   const [clientSearch, setClientSearch] = useState<ClientSearchParams>({})
   const [showCreate, setShowCreate] = useState(false)
+  const [showVisit, setShowVisit] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [renewingClient, setRenewingClient] = useState<Client | null>(null)
+  const [gymRegistered, setGymRegistered] = useState(false)
+  const [enrollingClient, setEnrollingClient] = useState<Client | null>(null)
+  const [enrollInvite, setEnrollInvite] = useState<VitalifyInvite | null>(null)
 
   const load = useCallback(async () => {
   if (!userData) return
@@ -103,6 +112,10 @@ export default function ClientsPage() {
         duration: p.duration ? String(p.duration) : null,
       })))
     })
+
+    void getBrowserCompanyVitalify(userData.company.id)
+      .then((data) => setGymRegistered(!!data.vitalify_id))
+      .catch(() => setGymRegistered(false))
   }, [userData])
 
   const pageCount = Math.max(1, Math.ceil(totalRows / pageSize))
@@ -157,6 +170,18 @@ export default function ClientsPage() {
       },
     },
     {
+      header: 'App',
+      cell: ({ row }) => (
+        row.original.vitalify_client_id
+          ? (
+            <Badge className="bg-primary text-primary-foreground text-[9px] uppercase tracking-widest h-4 gap-1">
+              <Smartphone className="h-2.5 w-2.5" /> App
+            </Badge>
+          )
+          : null
+      ),
+    },
+    {
       id: 'actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
@@ -168,14 +193,24 @@ export default function ClientsPage() {
           >
             <Pencil className="h-2.5 w-2.5" /> Editar
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="h-7 px-3 text-[9px] uppercase font-black tracking-[0.15em] gap-1.5 border-white/5 bg-secondary/20 hover:bg-primary/10 hover:text-primary transition-all"
             onClick={() => setRenewingClient(row.original)}
           >
             <RefreshCw className="h-2.5 w-2.5" /> Renovar
           </Button>
+          {gymRegistered && row.original.email && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-3 text-[9px] uppercase font-black tracking-[0.15em] gap-1.5 border-white/5 bg-secondary/20 hover:bg-primary/10 hover:text-primary transition-all"
+              onClick={() => setEnrollingClient(row.original)}
+            >
+              <Smartphone className="h-2.5 w-2.5" /> App
+            </Button>
+          )}
         </div>
       ),
     },
@@ -192,13 +227,23 @@ export default function ClientsPage() {
           </div>
           <p className="text-technical tracking-[0.3em]">Gestión de Acceso y Membresías v2.4</p>
         </div>
-        <Button 
-          size="sm" 
-          className="h-10 px-6 text-[10px] uppercase font-black tracking-[0.2em] gap-2 bg-primary text-black hover:bg-primary/90 shadow-neon italic"
-          onClick={() => setShowCreate(true)}
-        >
-          <Plus size={14} className="stroke-[3px]" /> Registrar Nuevo Miembro
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-10 px-6 text-[10px] uppercase font-black tracking-[0.2em] gap-2 border-border/40 hover:bg-secondary transition-colors italic"
+            onClick={() => setShowVisit(true)}
+          >
+            <Ticket size={14} className="stroke-[3px]" /> Cobrar Visita
+          </Button>
+          <Button
+            size="sm"
+            className="h-10 px-6 text-[10px] uppercase font-black tracking-[0.2em] gap-2 bg-primary text-black hover:bg-primary/90 shadow-neon italic"
+            onClick={() => setShowCreate(true)}
+          >
+            <Plus size={14} className="stroke-[3px]" /> Registrar Nuevo Miembro
+          </Button>
+        </div>
       </div>
 
       {/* Top Metrics Area */}
@@ -245,6 +290,7 @@ export default function ClientsPage() {
         open={showCreate}
         onClose={() => { setShowCreate(false); load() }}
         plans={plans}
+        gymRegistered={gymRegistered}
       />
       <EditClientDialog
         client={editingClient}
@@ -257,7 +303,20 @@ export default function ClientsPage() {
         open={!!renewingClient}
         onClose={() => setRenewingClient(null)}
         onSuccess={load}
+        gymRegistered={gymRegistered}
       />
+      <ChargeVisitDialog
+        open={showVisit}
+        onClose={() => setShowVisit(false)}
+        onSuccess={load}
+      />
+      <VitalifyEnrollDialog
+        client={enrollingClient}
+        open={!!enrollingClient}
+        onClose={() => setEnrollingClient(null)}
+        onEnrolled={(invite) => { setEnrollingClient(null); setEnrollInvite(invite); load() }}
+      />
+      <VitalifyInviteDialog invite={enrollInvite} onClose={() => setEnrollInvite(null)} />
     </div>
   )
 }

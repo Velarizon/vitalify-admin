@@ -101,6 +101,7 @@ export async function getActiveShiftSummary(locationId: number) {
 
   const newSubscriptions = (payments ?? []).filter(payment => payment.payment_type === 'new_subscription')
   const renewals = (payments ?? []).filter(payment => payment.payment_type === 'renewal')
+  const visits = (payments ?? []).filter(payment => payment.payment_type === 'visit')
   const sumPayments = (rows: typeof newSubscriptions) =>
     rows.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
 
@@ -113,6 +114,8 @@ export async function getActiveShiftSummary(locationId: number) {
     newSubscriptionIncome: sumPayments(newSubscriptions),
     renewalCount: renewals.length,
     renewalIncome: sumPayments(renewals),
+    visitCount: visits.length,
+    visitIncome: sumPayments(visits),
   }
 }
 
