@@ -244,13 +244,13 @@ export default function FacialSyncPage() {
             <ScanFace className="h-4 w-4 text-primary" />
             <h1 className="text-2xl font-heading font-black uppercase italic tracking-tighter">Sincronización Facial</h1>
           </div>
-          <p className="text-technical tracking-[0.3em]">Miembros sin vincular con Facial API</p>
+          <p className="text-technical tracking-[0.3em]">Miembros con membresía vigente sin vincular con Facial API</p>
         </div>
       </div>
 
       {/* Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <MetricCard title="Total Miembros" value={counts?.total ?? 0} subtitle="Base de datos del gimnasio" />
+        <MetricCard title="Miembros Activos" value={counts?.total ?? 0} subtitle="Con membresía vigente" />
         <MetricCard title="Vinculados" value={counts?.synced ?? 0} className="border-primary/20" subtitle="Registrados en Facial API" />
         <MetricCard title="Pendientes" value={counts?.pending ?? 0} className="border-destructive/20" subtitle="Faltan de registrar" />
       </div>

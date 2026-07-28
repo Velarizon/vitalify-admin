@@ -11,11 +11,14 @@ export async function GET(request: Request) {
   const gate = await requireAuthedAdmin()
   if (!gate.ok) return gate.response
 
-  // 1. Clientes de la compañía (campos ligeros para la tabla)
+  // 1. Clientes de la compañía con membresía vigente (campos ligeros para la tabla).
+  //    `!inner` descarta a quien no tiene ninguna suscripción que llegue a hoy.
+  const today = new Date().toISOString().split('T')[0]
   const { data: clients, error } = await gate.data
     .from('clients')
-    .select('id, name, last_name, email, image_url')
+    .select('id, name, last_name, email, image_url, subscriptions!inner(id)')
     .eq('company_id', companyId)
+    .gte('subscriptions.end_date', today)
     .order('id', { ascending: false })
 
   if (error) {
@@ -29,7 +32,10 @@ export async function GET(request: Request) {
   // 3. Diff local
   const syncedSet = new Set<number>(call.data?.data?.ids ?? [])
   const allClients = clients ?? []
-  const pending = allClients.filter((c) => !syncedSet.has(c.id))
+  const pending = allClients
+    .filter((c) => !syncedSet.has(c.id))
+    // el join solo sirvió para filtrar; fuera de la respuesta
+    .map(({ id, name, last_name, email, image_url }) => ({ id, name, last_name, email, image_url }))
 
   return NextResponse.json({
     pending,
