@@ -150,14 +150,17 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
         payment_type: currentSubscription ? 'renewal' : 'new_subscription',
       })
 
-      // Facial API membership sync (non-blocking)
+      // Facial API membership sync (non-blocking). Si el cliente no existía allá, el route
+      // lo da de alta y responde con auto_registered.
       FacialApi.updateMembership({
         supabase_user_id: client.id,
         membership_type:  selectedPlan.name,
         start_date:       startDate,
         end_date:         endDateValue,
+      }).then((res) => {
+        if (res.auto_registered) toast.success('Cliente registrado en Facial API')
       }).catch((err: Error) => {
-        toast.warning(`Sin sincronización facial: ${err.message}`)
+        toast.warning(`Sin sincronización facial: ${err.message}`, { duration: 8000 })
       })
 
       // Terminal date update (non-blocking)

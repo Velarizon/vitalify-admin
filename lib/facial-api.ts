@@ -65,6 +65,8 @@ export interface FacialMembershipSyncResponse {
   status: number
   data: { user_id: number }
   error_type: string | null
+  /** El cliente no existía en RecFacialApi y el route lo dio de alta en el momento. */
+  auto_registered?: boolean
 }
 
 export interface PendingClient {
