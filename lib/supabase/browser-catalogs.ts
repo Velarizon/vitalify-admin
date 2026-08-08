@@ -147,6 +147,25 @@ export async function searchBrowserClients(
   }
 }
 
+export async function getBrowserOverdueRenewals(companyId: number, monthsThreshold = 6): Promise<ClientRow[]> {
+  const supabase = createClient()
+  const cutoff = new Date()
+  cutoff.setMonth(cutoff.getMonth() - monthsThreshold)
+
+  const { data, error } = await supabase
+    .from('clients')
+    .select('*, subscriptions(id, plan_id, start_date, end_date, plans(name))')
+    .eq('company_id', companyId)
+    .order('id', { ascending: false })
+  if (error) throw new Error(error.message)
+
+  return sortClientSubscriptions((data ?? []) as ClientRow[])
+    .filter((client) => {
+      const lastEndDate = client.subscriptions?.[0]?.end_date
+      return !!lastEndDate && new Date(lastEndDate) < cutoff
+    })
+}
+
 export async function getBrowserPlansPage(
   companyId: number,
   params?: PaginationParams
