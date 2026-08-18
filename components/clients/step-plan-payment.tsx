@@ -10,6 +10,7 @@ import { Camera, QrCode, RotateCcw, Banknote, CreditCard, ArrowLeftRight, Smartp
 import { add, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { MOBILE_APP_ADDON_PRICE } from '@/lib/vitalify/addon-proration'
 import Webcam from 'react-webcam'
 import { QRCodeSVG } from 'qrcode.react'
 
@@ -22,7 +23,9 @@ const PAYMENT_METHODS = [
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
-export const MOBILE_APP_ADDON_PRICE = 99
+// La constante vive en lib/vitalify/addon-proration.ts (junto al cálculo del
+// prorrateo); se re-exporta aquí porque varios componentes ya la importaban.
+export { MOBILE_APP_ADDON_PRICE }
 
 export interface PaymentData {
   plan_id: number
