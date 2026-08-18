@@ -48,13 +48,24 @@ export interface RegisterTrainerResult {
   alreadyExisted: boolean
 }
 
+// `isGym: true` marca la cuenta como gimnasio en Vitalify; sin eso el alta de
+// miembros (create-gym-member) la rechaza con 403. Como esa bandera es lo que
+// autoriza el alta de miembros, la edge function solo la acepta con el secreto
+// de integración — la anon key sola no basta (viaja dentro de la app móvil).
 export function registerTrainer(email: string, password: string): Promise<RegisterTrainerResult> {
-  return invoke<RegisterTrainerResult>('register-trainer', { email, password })
+  if (!SECRET) {
+    throw new Error('Integración Vitalify no configurada (falta VITALIFY_INTEGRATION_SECRET)')
+  }
+  return invoke<RegisterTrainerResult>(
+    'register-trainer',
+    { email, password, isGym: true },
+    { 'x-vitalify-secret': SECRET },
+  )
 }
 
 export interface CreateGymMemberResult {
   clientId: number
-  trainerClientId: number
+  trainerClientId: number | null
   membershipId: number | null
   auth: {
     email: string
