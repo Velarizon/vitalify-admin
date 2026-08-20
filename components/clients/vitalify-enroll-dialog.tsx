@@ -69,6 +69,12 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
         shift_id: activeShift?.id ?? null,
       })
 
+      // Hoy + 30 días: hasta cuándo queda pagada el app. Se manda como
+      // endDate del Membership (sin esto queda null y la app no sabe hasta
+      // cuándo dar acceso) y también se guarda localmente como referencia
+      // para el cobro de sincronización en la próxima renovación.
+      const appPaidUntil = calculateInitialAppPaidUntil()
+
       const res = await fetch('/api/vitalify/enroll-member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,15 +85,18 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
           lastName: client.last_name ?? '',
           email: client.email,
           phone: client.phone_number ?? null,
+          startDate: new Date().toISOString(),
+          endDate: appPaidUntil.toISOString(),
+          amount: MOBILE_APP_ADDON_PRICE,
+          currency: 'MXN',
+          paymentMethod,
         }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error ?? 'No se pudo registrar en la app')
 
-      // Guarda hasta cuándo queda pagada (hoy + 30 días) — referencia para el
-      // cobro de sincronización automático en la próxima renovación.
       await updateBrowserClientVitalifyBilling(client.id, {
-        vitalify_app_paid_until: calculateInitialAppPaidUntil().toISOString(),
+        vitalify_app_paid_until: appPaidUntil.toISOString(),
       })
 
       toast.success('Cobro registrado y miembro dado de alta en la app', { id: toastId })
