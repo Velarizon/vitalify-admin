@@ -4,6 +4,7 @@
 .mcp.toml
 node_modules/
 .next/
+.vercel/
 .superpowers/
 *.tsbuildinfo
 next-env.d.ts

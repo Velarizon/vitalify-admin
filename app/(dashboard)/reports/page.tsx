@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { DollarSign, TrendingUp, Users, BarChart3 } from 'lucide-react'
+import { DollarSign, TrendingUp, Users, BarChart3, UserX } from 'lucide-react'
 
 const reports = [
   { title: 'Pagos Mensuales', description: 'Pagos recibidos por mes', href: '/reports/monthly-payments', icon: DollarSign, enabled: true },
+  { title: 'Sin Renovar (4+ meses)', description: 'Clientes con membresía vencida hace 4 meses o más', href: '/reports/overdue-renewals', icon: UserX, enabled: true },
   { title: 'Altas de Clientes', description: 'Clientes dados de alta en terminal', href: '#', icon: Users, enabled: false },
   { title: 'Ingresos por Plan', description: 'Análisis por tipo de membresía', href: '#', icon: TrendingUp, enabled: false },
   { title: 'Reporte General', description: 'Vista general de métricas', href: '#', icon: BarChart3, enabled: false },

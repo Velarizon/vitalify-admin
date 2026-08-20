@@ -36,6 +36,9 @@ export default function TerminalPage() {
   const [showVitalifyPassword, setShowVitalifyPassword] = useState(false)
   const [registeringVitalify, setRegisteringVitalify] = useState(false)
   const [copied, setCopied] = useState(false)
+  // Un vitalify_id guardado no garantiza que la cuenta siga existiendo en Vitalify
+  // (p.ej. si esa base se recreó). Esto permite volver a mostrar el formulario.
+  const [reRegistering, setReRegistering] = useState(false)
 
   useEffect(() => {
     setAgentIp(localStorage.getItem('agentIp') || 'http://localhost:8000')
@@ -73,6 +76,7 @@ export default function TerminalPage() {
       if (!res.ok) throw new Error(result.error ?? 'No se pudo registrar el gimnasio')
       setVitalifyId(result.vitalifyId)
       setVitalifyEmail(result.email)
+      setReRegistering(false)
       toast.success(result.alreadyExisted ? 'Gimnasio ya estaba registrado en Vitalify' : 'Gimnasio registrado en Vitalify', { id: toastId })
     } catch (err) {
       toast.error((err as Error).message, { id: toastId })
@@ -257,7 +261,7 @@ export default function TerminalPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-5">
-          {vitalifyId ? (
+          {vitalifyId && !reRegistering ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/10 p-3">
                 <Check className="h-4 w-4 text-primary" />
@@ -301,6 +305,17 @@ export default function TerminalPage() {
                 {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? 'Copiado' : 'Copiar credenciales'}
               </Button>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                ¿El alta de miembros falla con &quot;Gimnasio no encontrado en Vitalify&quot;? La cuenta ya no existe allá.
+                <button
+                  type="button"
+                  onClick={() => setReRegistering(true)}
+                  className="ml-1 text-primary underline underline-offset-2 hover:opacity-80"
+                >
+                  Volver a registrar
+                </button>
+              </p>
             </div>
           ) : (
             <div className="space-y-5">

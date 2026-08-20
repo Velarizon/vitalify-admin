@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { createBrowserAddonPayment } from '@/lib/supabase/browser-catalogs'
+import { createBrowserAddonPayment, updateBrowserClientVitalifyBilling } from '@/lib/supabase/browser-catalogs'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { toast } from 'sonner'
 import { Banknote, CreditCard, ArrowLeftRight, CheckCircle2, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MOBILE_APP_ADDON_PRICE } from './step-plan-payment'
+import { MOBILE_APP_ADDON_PRICE, calculateInitialAppPaidUntil } from '@/lib/vitalify-billing'
 import type { VitalifyInvite } from './vitalify-invite-dialog'
 
 const PAYMENT_METHODS = [
@@ -39,6 +39,10 @@ interface Props {
   onEnrolled: (invite: VitalifyInvite) => void
 }
 
+// Primera activación del complemento (el cliente nunca tuvo el app). Cobro
+// completo, siempre — la sincronización con el ciclo del gym para clientes
+// que ya lo tenían se resuelve sola en la próxima renovación
+// (ver renew-membership-dialog.tsx / calculateAppSyncCharge).
 export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Props) {
   const { userData } = useAuthStore()
   const { selectedLocation } = usePreferencesStore()
@@ -65,6 +69,12 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
         shift_id: activeShift?.id ?? null,
       })
 
+      // Hoy + 30 días: hasta cuándo queda pagada el app. Se manda como
+      // endDate del Membership (sin esto queda null y la app no sabe hasta
+      // cuándo dar acceso) y también se guarda localmente como referencia
+      // para el cobro de sincronización en la próxima renovación.
+      const appPaidUntil = calculateInitialAppPaidUntil()
+
       const res = await fetch('/api/vitalify/enroll-member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,10 +85,19 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
           lastName: client.last_name ?? '',
           email: client.email,
           phone: client.phone_number ?? null,
+          startDate: new Date().toISOString(),
+          endDate: appPaidUntil.toISOString(),
+          amount: MOBILE_APP_ADDON_PRICE,
+          currency: 'MXN',
+          paymentMethod,
         }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error ?? 'No se pudo registrar en la app')
+
+      await updateBrowserClientVitalifyBilling(client.id, {
+        vitalify_app_paid_until: appPaidUntil.toISOString(),
+      })
 
       toast.success('Cobro registrado y miembro dado de alta en la app', { id: toastId })
       onClose()

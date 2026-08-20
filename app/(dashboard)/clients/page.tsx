@@ -201,7 +201,7 @@ export default function ClientsPage() {
           >
             <RefreshCw className="h-2.5 w-2.5" /> Renovar
           </Button>
-          {gymRegistered && row.original.email && (
+          {gymRegistered && row.original.email && !row.original.vitalify_client_id && (
             <Button
               variant="outline"
               size="sm"

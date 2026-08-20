@@ -7,6 +7,8 @@ import type { Database } from '@/types/supabase'
 type ClientRow = Database['public']['Tables']['clients']['Row'] & {
   is_sync?: boolean | null
   vitalify_client_id?: number | null
+  vitalify_billing_synced_at?: string | null
+  vitalify_app_paid_until?: string | null
   subscriptions?: {
     id: number
     plan_id: number | null
@@ -146,6 +148,25 @@ export async function searchBrowserClients(
     page,
     pageSize,
   }
+}
+
+export async function getBrowserOverdueRenewals(companyId: number, monthsThreshold = 6): Promise<ClientRow[]> {
+  const supabase = createClient()
+  const cutoff = new Date()
+  cutoff.setMonth(cutoff.getMonth() - monthsThreshold)
+
+  const { data, error } = await supabase
+    .from('clients')
+    .select('*, subscriptions(id, plan_id, start_date, end_date, plans(name))')
+    .eq('company_id', companyId)
+    .order('id', { ascending: false })
+  if (error) throw new Error(error.message)
+
+  return sortClientSubscriptions((data ?? []) as ClientRow[])
+    .filter((client) => {
+      const lastEndDate = client.subscriptions?.[0]?.end_date
+      return !!lastEndDate && new Date(lastEndDate) < cutoff
+    })
 }
 
 export async function getBrowserPlansPage(
@@ -522,6 +543,7 @@ export async function createBrowserAddonPayment(payment: {
   payment_method: string
   location_id: number
   shift_id?: number | null
+  payment_type?: string | null
 }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -530,7 +552,7 @@ export async function createBrowserAddonPayment(payment: {
     .insert({
       ...payment,
       subscription_id: payment.subscription_id ?? null,
-      payment_type: null,
+      payment_type: payment.payment_type ?? null,
       payment_date: new Date().toISOString(),
       registered_by: user?.id ?? null,
     } as never)
@@ -538,6 +560,18 @@ export async function createBrowserAddonPayment(payment: {
     .single()
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function updateBrowserClientVitalifyBilling(
+  clientId: number,
+  fields: { vitalify_billing_synced_at?: string; vitalify_app_paid_until?: string },
+) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('clients')
+    .update(fields as never)
+    .eq('id', clientId)
+  if (error) throw new Error(error.message)
 }
 
 export async function getBrowserDayVisitPrice(companyId: number): Promise<number | null> {
