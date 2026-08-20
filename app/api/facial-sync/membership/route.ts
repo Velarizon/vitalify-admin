@@ -3,6 +3,8 @@ import type { MembershipUpdatePayload } from '@/lib/facial-api'
 import { callFacialApi, requireAuthedAdmin } from '@/lib/facial-api-server'
 import { hydrateSyncPayloads } from '@/lib/facial-sync'
 
+export const runtime = 'edge'
+
 const NO_IMAGE_MESSAGE =
   'El cliente no está en Facial API y no tiene foto. Regístralo desde la pestaña Biométricos.'
 

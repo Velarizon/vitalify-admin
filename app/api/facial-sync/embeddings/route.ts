@@ -3,6 +3,8 @@ import { saveEmbeddings } from '@/lib/facial-sync'
 import type { EmbeddingsResponse } from '@/lib/facial-api'
 import { callFacialApi, requireAuthedAdmin } from '@/lib/facial-api-server'
 
+export const runtime = 'edge'
+
 /**
  * Respalda en Supabase (tabla face_embedding) los embeddings de los clientes indicados.
  * Trae los vectores de RecFacialApi (POST /api/sync/users/embeddings) y los guarda con el

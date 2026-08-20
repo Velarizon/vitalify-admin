@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { callFacialApi } from '@/lib/facial-api-server'
 
+export const runtime = 'edge'
+
 export async function POST(request: Request) {
   const { job_id } = await request.json() as { job_id: string }
   if (!job_id) {

@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { saveEmbeddings } from '@/lib/facial-sync'
 import { callFacialApi } from '@/lib/facial-api-server'
 
+export const runtime = 'edge'
+
 async function backupEmbedding(data: FacialSyncResponse) {
   const d = data?.data
   if (!d?.success || !d.embedding || !d.model_name) return

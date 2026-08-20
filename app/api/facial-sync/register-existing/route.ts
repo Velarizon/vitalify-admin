@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { hydrateSyncPayloads } from '@/lib/facial-sync'
 import { callFacialApi, requireAuthedAdmin } from '@/lib/facial-api-server'
 
+export const runtime = 'edge'
+
 export async function POST(request: Request) {
   const { clientId } = await request.json() as { clientId: number }
   if (!Number.isFinite(clientId)) {

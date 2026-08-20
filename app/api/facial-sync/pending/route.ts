@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { callFacialApi, requireAuthedAdmin } from '@/lib/facial-api-server'
 
+export const runtime = 'edge'
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const companyId = Number(searchParams.get('companyId'))
