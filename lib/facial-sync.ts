@@ -120,3 +120,13 @@ export async function saveEmbeddings(
     })))
   if (insertError) throw new Error(insertError.message)
 }
+
+/**
+ * Segmento(s) despues de /api/facial-sync en la URL de la peticion: '', 'bulk',
+ * 'bulk/status', ... Lo usa el route handler catch-all para despachar.
+ */
+export function facialSyncAction(url: string): string {
+  return new URL(url).pathname
+    .replace(/^\/api\/facial-sync\/?/, '')
+    .replace(/\/$/, '')
+}
