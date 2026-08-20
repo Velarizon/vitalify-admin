@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import Webcam from 'react-webcam'
 import { QRCodeSVG } from 'qrcode.react'
+import { MOBILE_APP_ADDON_PRICE } from '@/lib/vitalify-billing'
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Efectivo', icon: Banknote },
@@ -22,7 +23,7 @@ const PAYMENT_METHODS = [
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
-export const MOBILE_APP_ADDON_PRICE = 99
+export { MOBILE_APP_ADDON_PRICE }
 
 export interface PaymentData {
   plan_id: number
