@@ -9,6 +9,7 @@ import {
   createBrowserPayment,
   createBrowserSubscription,
   getBrowserActivePlans,
+  updateBrowserClientVitalifyBilling,
   updateBrowserSubscription,
 } from '@/lib/supabase/browser-catalogs'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
@@ -21,7 +22,7 @@ import { es } from 'date-fns/locale'
 import { Banknote, CreditCard, ArrowLeftRight, CheckCircle2, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Switch } from '@/components/ui/switch'
-import { MOBILE_APP_ADDON_PRICE } from './step-plan-payment'
+import { MOBILE_APP_ADDON_PRICE, calculateAppSyncCharge } from '@/lib/vitalify-billing'
 import { VitalifyInviteDialog, VitalifyInvite } from './vitalify-invite-dialog'
 
 interface Props {
@@ -33,6 +34,9 @@ interface Props {
     last_name: string | null
     email?: string | null
     phone_number?: string | null
+    vitalify_client_id?: number | null
+    vitalify_billing_synced_at?: string | null
+    vitalify_app_paid_until?: string | null
     subscriptions?: {
       id: number
       plan_id?: number | null
@@ -67,6 +71,11 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
   // App Móvil can only be offered if the gym is registered AND we have an email
   // to enroll the member with.
   const canMobileApp = gymRegistered && !!client?.email
+  // Client already has the app. Once billing is synced (caught up to the gym
+  // cycle), the $99 add-on is charged on every renewal automatically. Before
+  // that, it's still included by default but prorated (calculateAppSyncCharge).
+  const hasApp = !!client?.vitalify_client_id
+  const isAppSynced = hasApp && !!client?.vitalify_billing_synced_at
 
   const selectedPlan = plans.find(p => String(p.id) === selectedPlanId)
 
@@ -80,6 +89,9 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
           const match = loadedPlans.find((p: any) => p.id === currentPlanId)
           if (match) setSelectedPlanId(String(match.id))
         }
+        // Clients that already have the app default to keeping it — either
+        // fully automatic (synced) or pre-checked pending the catch-up charge.
+        setMobileApp(!!client?.vitalify_client_id)
       })
     }
   }, [open, userData, client])
@@ -110,6 +122,18 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
     const endDate = parseISO(currentEndDate)
     return endDate > today ? endDate : today
   }
+
+  const nextEndDate = selectedPlan ? calculateEndDate(selectedPlan.duration ?? '1 month', getRenewalBaseDate()) : null
+
+  // What the app add-on actually costs on this renewal:
+  // - no app yet -> flat price if the staff opts in
+  // - already synced -> flat price, always included
+  // - enrolled but not synced -> prorated catch-up to the new end date
+  //   (calculateAppSyncCharge falls back to the flat price itself if there's
+  //   no paid-until baseline, or the gap is bigger than a full cycle)
+  const appAddonAmount = !hasApp || isAppSynced || !nextEndDate
+    ? MOBILE_APP_ADDON_PRICE
+    : calculateAppSyncCharge(client?.vitalify_app_paid_until ?? null, nextEndDate)
 
   const handleRenew = async () => {
     if (!client || !selectedPlan || !selectedLocation || !userData) return
@@ -142,7 +166,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
       const addMobileApp = mobileApp && canMobileApp
       await createBrowserPayment({
         subscription_id: subscription.id,
-        amount: planPrice + (addMobileApp ? MOBILE_APP_ADDON_PRICE : 0),
+        amount: planPrice + (addMobileApp ? appAddonAmount : 0),
         payment_method: paymentMethod,
         location_id: selectedLocation.location.id,
         shift_id: activeShift?.id || null,
@@ -177,7 +201,7 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
               startDate,
               endDate: endDateValue,
               planDuration: selectedPlan.duration ?? null,
-              amount: MOBILE_APP_ADDON_PRICE, // Vitalify only charges the app add-on; the plan price is the gym's
+              amount: appAddonAmount, // Vitalify only charges the app add-on; the plan price is the gym's
               currency: 'MXN',
               paymentMethod,
             }),
@@ -190,6 +214,8 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
             code: result.temporaryPassword ?? null,
             phone: client.phone_number ?? null,
           }
+          // Caught up (or already was) — future renewals bill the flat $99 automatically.
+          await updateBrowserClientVitalifyBilling(client.id, { vitalify_billing_synced_at: endDateValue })
         } catch (e: any) {
           toast.warning(`Renovación completa, pero falló el registro en Vitalify: ${e.message}`, { duration: 8000 })
         }
@@ -212,7 +238,6 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
   const fmtCurrency = (n: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 
-  const nextEndDate = selectedPlan ? calculateEndDate(selectedPlan.duration ?? '1 month', getRenewalBaseDate()) : null
   const clientCode = `#VTL-${client?.id.toString().padStart(5, '0')}`
 
   return (
@@ -283,11 +308,17 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold text-foreground">Complemento App Móvil</p>
                   <p className="text-xs text-muted-foreground">
-                    Acceso a la aplicación móvil · +{fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+                    {isAppSynced
+                      ? `Incluido automáticamente · +${fmtCurrency(appAddonAmount)}`
+                      : hasApp
+                        ? `Cobro de sincronización · +${fmtCurrency(appAddonAmount)}`
+                        : `Acceso a la aplicación móvil · +${fmtCurrency(appAddonAmount)}`}
                   </p>
                 </div>
               </div>
-              <Switch checked={mobileApp} onCheckedChange={setMobileApp} />
+              {isAppSynced
+                ? <Switch checked disabled />
+                : <Switch checked={mobileApp} onCheckedChange={setMobileApp} />}
             </div>
           )}
 
@@ -304,14 +335,14 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-xs text-muted-foreground">Complemento App Móvil</span>
                   <span className="text-xs font-semibold text-foreground font-mono">
-                    {fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+                    {fmtCurrency(appAddonAmount)}
                   </span>
                 </div>
               )}
               <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-xs text-muted-foreground">Total a pagar</span>
                 <span className="text-lg font-bold text-primary font-mono">
-                  {fmtCurrency((selectedPlan.price ?? 0) + (mobileApp && canMobileApp ? MOBILE_APP_ADDON_PRICE : 0))}
+                  {fmtCurrency((selectedPlan.price ?? 0) + (mobileApp && canMobileApp ? appAddonAmount : 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
