@@ -653,3 +653,33 @@ export async function closeBrowserShift(shiftId: number, notes?: string): Promis
 
   return { error: error?.message ?? null }
 }
+
+// Limited-time promo: first N Vitalify app add-on activations are free
+// (new activations only, see lib/vitalify-billing.ts). See
+// supabase/migrations/20260824120000_add_app_addon_promotions.sql.
+export async function getAppAddonPromoStatus(): Promise<{ available: boolean; redeemedCount: number; redemptionLimit: number } | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('app_addon_promotions' as never)
+    .select('active, redeemed_count, redemption_limit')
+    .limit(1)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!data) return null
+  const row = data as unknown as { active: boolean; redeemed_count: number; redemption_limit: number }
+  return {
+    available: row.active && row.redeemed_count < row.redemption_limit,
+    redeemedCount: row.redeemed_count,
+    redemptionLimit: row.redemption_limit,
+  }
+}
+
+// Atomically claims one free redemption. Returns true (charge $0) only if
+// the promo still had room at the moment of the call — the DB function
+// re-checks even if getAppAddonPromoStatus() said "available" earlier.
+export async function redeemAppAddonPromo(): Promise<boolean> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('redeem_app_addon_promo' as never)
+  if (error) throw new Error(error.message)
+  return data === true
+}

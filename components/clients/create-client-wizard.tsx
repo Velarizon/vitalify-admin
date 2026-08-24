@@ -9,7 +9,7 @@ import { StepPersonal, PersonalData } from './step-personal'
 import { StepBiometrics, BiometricData } from './step-biometrics'
 import { StepPlanPayment, PaymentData, MOBILE_APP_ADDON_PRICE } from './step-plan-payment'
 import { VitalifyInviteDialog, VitalifyInvite } from './vitalify-invite-dialog'
-import { createBrowserClientRecord, createBrowserPayment, createBrowserSubscription, updateBrowserClient } from '@/lib/supabase/browser-catalogs'
+import { createBrowserClientRecord, createBrowserPayment, createBrowserSubscription, updateBrowserClient, redeemAppAddonPromo } from '@/lib/supabase/browser-catalogs'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
@@ -78,11 +78,15 @@ export function CreateClientWizard({ open, onClose, plans, gymRegistered = false
       })
 
       // 3. Insert payment
+      // Atomically claims one free redemption if the promo still has room —
+      // re-checked here even though step-plan-payment.tsx already showed a
+      // price, since it can run out between opening the wizard and submitting.
+      const addonAmount = payment.mobile_app && await redeemAppAddonPromo() ? 0 : MOBILE_APP_ADDON_PRICE
       const activeShift = await getBrowserActiveShift(selectedLocation.location.id)
       const planPrice = plans.find(p => p.id === payment.plan_id)?.price ?? 0
       await createBrowserPayment({
         subscription_id: subscription.id,
-        amount: planPrice + (payment.mobile_app ? MOBILE_APP_ADDON_PRICE : 0),
+        amount: planPrice + (payment.mobile_app ? addonAmount : 0),
         payment_method: payment.payment_method,
         location_id: selectedLocation.location.id,
         shift_id: activeShift?.id ?? null,
@@ -127,7 +131,7 @@ export function CreateClientWizard({ open, onClose, plans, gymRegistered = false
               startDate: payment.start_date,
               endDate: payment.end_date,
               planDuration: plans.find(p => p.id === payment.plan_id)?.duration ?? null,
-              amount: MOBILE_APP_ADDON_PRICE, // Vitalify only charges the app add-on; the plan price is the gym's
+              amount: addonAmount, // Vitalify only charges the app add-on; the plan price is the gym's
               currency: 'MXN',
               paymentMethod: payment.payment_method,
             }),

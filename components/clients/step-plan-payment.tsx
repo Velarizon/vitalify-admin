@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import Webcam from 'react-webcam'
 import { QRCodeSVG } from 'qrcode.react'
 import { MOBILE_APP_ADDON_PRICE } from '@/lib/vitalify-billing'
+import { getAppAddonPromoStatus } from '@/lib/supabase/browser-catalogs'
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Efectivo', icon: Banknote },
@@ -59,6 +60,18 @@ export function StepPlanPayment({ data, onChange, plans, gymRegistered = false }
   const [showQR, setShowQR] = useState(false)
   const [qrToken] = useState(() => Math.random().toString(36).slice(2))
   const webcamRef = useRef<Webcam>(null)
+
+  const [promo, setPromo] = useState<{ redeemedCount: number; redemptionLimit: number } | null>(null)
+
+  // Display only — the actual charge is decided atomically at submit time
+  // in create-client-wizard.tsx, since the promo can run out in between.
+  useEffect(() => {
+    getAppAddonPromoStatus()
+      .then(status => setPromo(status?.available ? status : null))
+      .catch(() => setPromo(null))
+  }, [])
+
+  const addonPrice = promo ? 0 : MOBILE_APP_ADDON_PRICE
 
   const selectedPlan = plans.find(p => p.id === data.plan_id)
 
@@ -158,9 +171,16 @@ export function StepPlanPayment({ data, onChange, plans, gymRegistered = false }
           </div>
           <div className="space-y-0.5">
             <p className="text-sm font-semibold text-foreground">Complemento App Móvil</p>
-            <p className="text-xs text-muted-foreground">
-              Acceso a la aplicación móvil · +{fmtCurrency(MOBILE_APP_ADDON_PRICE)}
-            </p>
+            {promo ? (
+              <p className="text-xs">
+                <span className="text-muted-foreground line-through">+{fmtCurrency(MOBILE_APP_ADDON_PRICE)}</span>{' '}
+                <span className="text-primary">GRATIS · 🎁 {promo.redemptionLimit - promo.redeemedCount}/{promo.redemptionLimit} restantes</span>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Acceso a la aplicación móvil · +{fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+              </p>
+            )}
           </div>
         </div>
         <Switch
@@ -183,14 +203,14 @@ export function StepPlanPayment({ data, onChange, plans, gymRegistered = false }
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-xs text-muted-foreground">Complemento App Móvil</span>
               <span className="text-xs font-semibold text-foreground font-mono">
-                {fmtCurrency(MOBILE_APP_ADDON_PRICE)}
+                {fmtCurrency(addonPrice)}
               </span>
             </div>
           )}
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-xs text-muted-foreground">Total a pagar</span>
             <span className="text-lg font-bold text-primary font-mono">
-              {fmtCurrency((selectedPlan.price ?? 0) + (data.mobile_app ? MOBILE_APP_ADDON_PRICE : 0))}
+              {fmtCurrency((selectedPlan.price ?? 0) + (data.mobile_app ? addonPrice : 0))}
             </span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
