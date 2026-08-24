@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { createBrowserAddonPayment, updateBrowserClientVitalifyBilling } from '@/lib/supabase/browser-catalogs'
+import { createBrowserAddonPayment, updateBrowserClientVitalifyBilling, getAppAddonPromoStatus, redeemAppAddonPromo } from '@/lib/supabase/browser-catalogs'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
@@ -48,9 +48,16 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
   const { selectedLocation } = usePreferencesStore()
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [promo, setPromo] = useState<{ redeemedCount: number; redemptionLimit: number } | null>(null)
 
   useEffect(() => {
-    if (!open) setPaymentMethod('cash')
+    if (!open) {
+      setPaymentMethod('cash')
+      return
+    }
+    getAppAddonPromoStatus()
+      .then(status => setPromo(status?.available ? status : null))
+      .catch(() => setPromo(null))
   }, [open])
 
   const handleConfirm = async () => {
@@ -59,11 +66,15 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
     const toastId = toast.loading('Procesando cobro y registro en app...')
 
     try {
+      // Re-checked atomically against the DB, not trusted from the earlier
+      // status fetch — the promo may have run out in the meantime.
+      const isFree = promo ? await redeemAppAddonPromo() : false
+      const addonAmount = isFree ? 0 : MOBILE_APP_ADDON_PRICE
       const activeShift = await getBrowserActiveShift(selectedLocation.location.id)
 
       await createBrowserAddonPayment({
         subscription_id: client.subscriptions?.[0]?.id ?? null,
-        amount: MOBILE_APP_ADDON_PRICE,
+        amount: addonAmount,
         payment_method: paymentMethod,
         location_id: selectedLocation.location.id,
         shift_id: activeShift?.id ?? null,
@@ -87,7 +98,7 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
           phone: client.phone_number ?? null,
           startDate: new Date().toISOString(),
           endDate: appPaidUntil.toISOString(),
-          amount: MOBILE_APP_ADDON_PRICE,
+          amount: addonAmount,
           currency: 'MXN',
           paymentMethod,
         }),
@@ -133,8 +144,22 @@ export function VitalifyEnrollDialog({ client, open, onClose, onEnrolled }: Prop
 
         <div className="space-y-4 pt-1">
           <div className="rounded-lg border border-border/30 bg-secondary/20 px-4 py-3 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Monto a cobrar</span>
-            <span className="text-lg font-bold text-primary font-mono">{fmtCurrency(MOBILE_APP_ADDON_PRICE)}</span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted-foreground">Monto a cobrar</span>
+              {promo && (
+                <span className="text-[10px] text-primary">
+                  🎁 Promo: {promo.redemptionLimit - promo.redeemedCount}/{promo.redemptionLimit} restantes
+                </span>
+              )}
+            </div>
+            {promo ? (
+              <span className="flex items-baseline gap-2">
+                <span className="text-xs text-muted-foreground line-through">{fmtCurrency(MOBILE_APP_ADDON_PRICE)}</span>
+                <span className="text-lg font-bold text-primary font-mono">{fmtCurrency(0)}</span>
+              </span>
+            ) : (
+              <span className="text-lg font-bold text-primary font-mono">{fmtCurrency(MOBILE_APP_ADDON_PRICE)}</span>
+            )}
           </div>
 
           <div className="space-y-1.5">
