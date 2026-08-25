@@ -15,6 +15,7 @@ import { usePreferencesStore } from '@/stores/preferences'
 import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { uploadFaceImage } from '@/lib/face-image'
 import Terminal from '@/lib/terminal'
+import FacialApi from '@/lib/facial-api'
 import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, UserPlus, ShieldCheck } from 'lucide-react'
 
@@ -63,9 +64,10 @@ export function CreateClientWizard({ open, onClose, plans, gymRegistered = false
       })
 
       // 1b. Upload face photo to Storage and link it to the client record
+      let uploadedImageUrl: string | null = null
       if (biometric.faceImage) {
-        const imageUrl = await uploadFaceImage(userData.company.id, client.id, biometric.faceImage)
-        await updateBrowserClient(client.id, { image_url: imageUrl })
+        uploadedImageUrl = await uploadFaceImage(userData.company.id, client.id, biometric.faceImage)
+        await updateBrowserClient(client.id, { image_url: uploadedImageUrl })
       }
 
       // 2. Insert subscription
@@ -92,7 +94,6 @@ export function CreateClientWizard({ open, onClose, plans, gymRegistered = false
         shift_id: activeShift?.id ?? null,
       })
 
-      // 4. Terminal sync (non-blocking)
       try {
         const employeeNo = String(client.id)
         await Terminal.createPerson({
@@ -110,10 +111,33 @@ export function CreateClientWizard({ open, onClose, plans, gymRegistered = false
         }
         if (biometric.fingerprintData) await Terminal.setUpFingerPrint(employeeNo, biometric.fingerprintData.fingerPrintData)
         await updateBrowserClient(client.id, syncUpdates)
-        toast.success('Registro completado exitosamente', { id: toastId })
       } catch {
-        toast.warning('Registro en DB exitoso. Error de sincronización local.', { id: toastId })
+        // terminal error
       }
+      toast.success('Registro completado exitosamente', { id: toastId })
+
+      // 5. Facial recognition API sync (non-blocking, siempre)
+      const planName = plans.find(p => p.id === payment.plan_id)?.name ?? ''
+      FacialApi.registerUser({
+        supabase_user_id: client.id,
+        email: personal.email,
+        first_name: personal.name,
+        last_name: personal.last_name,
+        phone_number: personal.phone_number || null,
+        gender: personal.gender || null,
+        birth_date: personal.date_of_birth || null,
+        profile_picture_url: uploadedImageUrl,
+        membership: {
+          membership_type: planName,
+          start_date: payment.start_date,
+          end_date: payment.end_date,
+        },
+      }).then((res) => {
+        if (res.data.warning) toast.warning(`Reconocimiento facial: ${res.data.warning}`)
+        else if (res.data.error) toast.error(`Reconocimiento facial: ${res.data.error}`)
+      }).catch((err: Error) => {
+        toast.warning(`Sin sincronización facial: ${err.message}`)
+      })
 
       // 5. Vitalify (App Móvil) enrollment — non-blocking, only with add-on
       if (payment.mobile_app && gymRegistered) {

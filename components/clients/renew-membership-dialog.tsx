@@ -16,6 +16,7 @@ import { getBrowserActiveShift } from '@/lib/supabase/browser-shifts'
 import { useAuthStore } from '@/stores/auth'
 import { usePreferencesStore } from '@/stores/preferences'
 import Terminal from '@/lib/terminal'
+import FacialApi from '@/lib/facial-api'
 import { toast } from 'sonner'
 import { add, format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -171,6 +172,19 @@ export function RenewMembershipDialog({ client, open, onClose, onSuccess, gymReg
         location_id: selectedLocation.location.id,
         shift_id: activeShift?.id || null,
         payment_type: currentSubscription ? 'renewal' : 'new_subscription',
+      })
+
+      // Facial API membership sync (non-blocking). Si el cliente no existía allá, el route
+      // lo da de alta y responde con auto_registered.
+      FacialApi.updateMembership({
+        supabase_user_id: client.id,
+        membership_type:  selectedPlan.name,
+        start_date:       startDate,
+        end_date:         endDateValue,
+      }).then((res) => {
+        if (res.auto_registered) toast.success('Cliente registrado en Facial API')
+      }).catch((err: Error) => {
+        toast.warning(`Sin sincronización facial: ${err.message}`, { duration: 8000 })
       })
 
       // Terminal date update (non-blocking)

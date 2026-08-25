@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { escapeForLike, normalizePagination, type PaginatedResult, type PaginationParams } from '@/lib/supabase/actions/pagination'
 import { computeShiftTotals } from '@/lib/shifts'
 import type { Database } from '@/types/supabase'
@@ -298,6 +299,61 @@ export async function upsertBrowserLocation(location: {
   const { error } = id
     ? await supabase.from('locations').update(payload).eq('id', id)
     : await supabase.from('locations').insert(payload)
+  if (error) throw new Error(error.message)
+}
+
+// --- Ads (anuncios de la pantalla de espera del kiosco; scope por location) ---
+// La tabla `ads` aún no está en los tipos generados de Supabase → casts `as any`.
+
+export interface AdRow {
+  id: number
+  location_id: number
+  name: string
+  video_url: string
+  sort_order: number
+  active: boolean
+  created_at: string | null
+}
+
+// `ads` aún no está en los tipos generados; handle sin tipar por tabla (sin `any` explícito).
+const adsDb = (): SupabaseClient => createClient() as unknown as SupabaseClient
+
+export async function getBrowserAds(locationId: number): Promise<AdRow[]> {
+  const { data, error } = await adsDb()
+    .from('ads')
+    .select('*')
+    .eq('location_id', locationId)
+    .order('sort_order', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as AdRow[]
+}
+
+export async function insertBrowserAd(ad: {
+  location_id: number
+  name: string
+  video_url: string
+  sort_order: number
+}) {
+  const { error } = await adsDb().from('ads').insert(ad)
+  if (error) throw new Error(error.message)
+}
+
+export async function updateBrowserAd(id: number, updates: {
+  name?: string
+  sort_order?: number
+  video_url?: string
+}) {
+  const { error } = await adsDb().from('ads').update(updates).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function toggleBrowserAdActive(id: number, active: boolean) {
+  const { error } = await adsDb().from('ads').update({ active }).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteBrowserAd(id: number) {
+  const { error } = await adsDb().from('ads').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
 

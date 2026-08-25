@@ -150,6 +150,38 @@ export type Database = {
         }
         Relationships: []
       }
+      face_embedding: {
+        Row: {
+          active: boolean
+          client_id: number
+          created_at: string | null
+          embedding: string | null
+          model_name: string
+        }
+        Insert: {
+          active: boolean
+          client_id: number
+          created_at?: string | null
+          embedding?: string | null
+          model_name: string
+        }
+        Update: {
+          active?: boolean
+          client_id?: number
+          created_at?: string | null
+          embedding?: string | null
+          model_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "face_embedding_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
